@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スマート案内図作成エディタ | スプリット・トレース方式</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Leaflet: 参照マップ用 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+  <!-- 上部メインヘッダー (1段に集約・すっきりモダンレイアウト) -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">図</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h1>スマート案内図エディタ</h1>
+        <span class="version-badge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.1</span>
+      </div>
+    </div>
+
+    <!-- 検索 & 基本設定 -->
+    <div class="header-settings">
+      <div class="search-box">
+        <input type="text" id="inputAddress" placeholder="住所・駅名で検索 (Enter)" value="埼玉県さいたま市大宮区大門町">
+        <button id="btnSearch" class="btn btn-secondary btn-sm">検索</button>
+      </div>
+
+      <div class="dest-name-box">
+        <label>目的地:</label>
+        <input type="text" id="inputDestName" value="現地" title="案内図に表示する物件・目的地の名前（例: 現地、モデルハウス、A区画）" placeholder="目的地名" style="width: 76px; background: #0b0f19; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 6px; color: #fff; font-size: 12px; font-weight: bold; text-align: center;">
+      </div>
+
+      <div class="size-box">
+        <label>枠(mm):</label>
+        <input type="number" id="inputWidthMm" value="80" min="30" max="300" step="5" style="width: 48px;">
+        <span>×</span>
+        <input type="number" id="inputHeightMm" value="50" min="30" max="300" step="5" style="width: 48px;">
+      </div>
+
+      <div class="header-options">
+        <label class="check-label" title="チラシの背景色になじむよう背景を透過します">
+          <input type="checkbox" id="checkTransparentBg">
+          <span>背景透過</span>
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="checkScale" checked>
+          <span>縮尺</span>
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="checkCompass" checked>
+          <span>方位(N)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 出力・保存・取り消しアクション -->
+    <div class="header-actions">
+      <button id="btnUndo" class="btn btn-undo" title="直前の入力を取り消す (Ctrl+Z)"><span>↩️</span> 戻す</button>
+      <button id="btnSave" class="btn btn-save" title="作図データをJSONファイルに保存 (Ctrl+S)">💾 保存</button>
+      <button id="btnLoad" class="btn btn-load" title="保存済みJSONファイルを読み込む">📂 読込</button>
+      <input type="file" id="inputLoadFile" accept=".json" style="display:none;">
+      <div class="header-divider"></div>
+      <button id="btnExportSvg" class="btn btn-primary" title="Illustratorで編集可能なベクター形式">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        SVG 出力
+      </button>
+      <button id="btnExportPng" class="btn btn-secondary" title="高解像度画像 (350dpi)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        PNG 出力
+      </button>
+      <button id="btnClearAll" class="btn btn-danger" title="すべての作図をリセット">🗑️ 全消去</button>
+    </div>
+  </header>
+
+  <!-- サブバー: 動的プロパティ・インスペクターバー & 操作ヒント -->
+  <div class="sub-bar">
+    <!-- 選択時またはツールに応じたコンテキストプロパティパネル -->
+    <div id="inspectorPanel" class="inspector-panel">
+      <!-- 選択ツール時: 要素が選択されている時のプロパティ -->
+      <div id="inspectorSelected" class="inspector-group" style="display:none;">
+        <span class="inspector-badge" id="selectedBadge">選択中</span>
+        <label class="inspector-field">表示名 (改行可):
+          <textarea id="inspectorName" rows="1" placeholder="表示名 (Shift+Enterで改行)" style="width: 140px; height: 26px; resize: none; vertical-align: middle; padding: 3px 6px; font-size: 11.5px;"></textarea>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">文字サイズ:
+          <input type="range" id="inspectorFontSizeSlider" min="8" max="26" value="12" style="width: 65px;">
+          <span id="inspectorFontSizeVal" style="width: 28px; font-weight: bold;">12px</span>
+          <div class="btn-micro-group">
+            <button type="button" class="btn-micro" data-font="10">小</button>
+            <button type="button" class="btn-micro" data-font="12">中</button>
+            <button type="button" class="btn-micro" data-font="15">大</button>
+            <button type="button" class="btn-micro" data-font="18">特大</button>
+          </div>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">文字回転:
+          <input type="range" id="inspectorRotationSlider" min="-180" max="180" step="5" value="0" style="width: 65px;">
+          <span id="inspectorRotationVal" style="width: 32px; font-weight: bold;">0°</span>
+          <div class="btn-micro-group">
+            <button type="button" class="btn-micro" data-rot="0">0°</button>
+            <button type="button" class="btn-micro" data-rot="30">30°</button>
+            <button type="button" class="btn-micro" data-rot="45">45°</button>
+            <button type="button" class="btn-micro" data-rot="60">60°</button>
+            <button type="button" class="btn-micro" data-rot="90">90°</button>
+            <button type="button" class="btn-micro" data-rot="-30">-30°</button>
+            <button type="button" class="btn-micro" data-rot="-45">-45°</button>
+            <button type="button" class="btn-micro" data-rot="-60">-60°</button>
+          </div>
+        </label>
+        <div class="inspector-divider" id="inspectorIconScaleDivider" style="display:none;"></div>
+        <label class="inspector-field" id="inspectorIconScaleField" style="display:none;" title="施設アイコン記号の大きさ">記号サイズ:
+          <input type="range" id="inspectorIconScaleSlider" min="0.5" max="2.5" step="0.1" value="1.0" style="width: 60px;">
+          <span id="inspectorIconScaleVal" style="width: 28px; font-weight: bold;">1.0x</span>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="check-label" id="inspectorLeaderLineLabel" title="対象地点から文字へのカギ型引き出し線を表示">
+          <input type="checkbox" id="inspectorLeaderLine">
+          <span>引き出し線</span>
+        </label>
+        <div class="inspector-divider"></div>
+        <button id="btnOpenPropModal" class="btn-micro" style="padding:3px 8px; background:#eff6ff; color:#2563eb; font-weight:bold; border:1px solid #bfdbfe;" title="テキスト・要素プロパティ設定モーダルを開く">⚙️ 詳細・折り返し</button>
+        <div class="inspector-divider"></div>
+        <button id="btnInspectorDelete" class="btn-del-item" title="この要素を削除 (Deleteキー)">🗑️ 削除</button>
+      </div>
+
+      <!-- 方位記号設定 (方位が選択された時) -->
+      <div id="inspectorCompass" class="inspector-group" style="display:none;">
+        <span class="inspector-badge" style="background:#475569;">方位(N)</span>
+        <label class="inspector-field">デザイン:
+          <select id="selectCompassDesign" class="poi-select" style="padding:2px 6px; font-size:11.5px; width:135px;">
+            <option value="circle_modern">丸枠モダン (円)</option>
+            <option value="circle_classic">クラシック4方位 (丸)</option>
+            <option value="arrow_simple">シンプル矢印</option>
+            <option value="compass_rose">コンパスローズ (8方位)</option>
+            <option value="real_estate">不動産案内図三角</option>
+          </select>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">サイズ倍率:
+          <input type="range" id="compassScaleSlider" min="0.6" max="2.2" step="0.1" value="1.0" style="width: 70px;">
+          <span id="compassScaleVal" style="width: 30px; font-weight: bold;">1.0x</span>
+          <div class="btn-micro-group">
+            <button type="button" class="btn-micro" data-cscale="0.8">小</button>
+            <button type="button" class="btn-micro" data-cscale="1.0">標準</button>
+            <button type="button" class="btn-micro" data-cscale="1.3">大</button>
+            <button type="button" class="btn-micro" data-cscale="1.6">特大</button>
+          </div>
+        </label>
+        <div class="inspector-divider"></div>
+        <button id="btnResetCompassPos" class="btn-micro" style="padding:3px 8px;" title="方位記号を初期位置（右上）に戻す">右上に戻す</button>
+      </div>
+
+      <!-- 線路モード設定 (線路ツールまたは線路選択時) -->
+      <div id="inspectorRail" class="inspector-group" style="display:none;">
+        <span class="tool-group-label">線路モード:</span>
+        <select id="selectRailMode" class="poi-select" style="padding:3px 6px;">
+          <option value="jr">JR線 (白黒枕木)</option>
+          <option value="private">私鉄線 (2重白抜き線)</option>
+        </select>
+      </div>
+
+      <!-- 道路スタイル設定 -->
+      <div id="inspectorRoad" class="inspector-group" style="display:none;">
+        <span class="tool-group-label">道路スタイル:</span>
+        <label class="style-label">外枠色
+          <input type="color" id="roadCasingColor" value="#666666">
+        </label>
+        <label class="style-label">内側色
+          <input type="color" id="roadInnerColor" value="#ffffff">
+        </label>
+        <label class="check-label style-label">
+          <input type="checkbox" id="roadFilled">
+          <span>塗りつぶし</span>
+        </label>
+        <label class="style-label" id="roadFillColorLabel" style="display:none;">塗り色
+          <input type="color" id="roadFillColor" value="#ffe066">
+        </label>
+      </div>
+
+      <!-- 施設スタンプ設定 -->
+      <div id="inspectorPoi" class="inspector-group" style="display:none;">
+        <span class="tool-group-label">施設設定:</span>
+        <select id="selectPoiType" class="poi-select">
+          <option value="signal">🚦 信号機・交差点</option>
+          <option value="supermarket">🛒 スーパー</option>
+          <option value="station">🚉 駅</option>
+          <option value="7eleven">🏪 セブン-イレブン</option>
+          <option value="familymart">🏪 ファミリーマート</option>
+          <option value="lawson">🏪 ローソン</option>
+          <option value="fuel">⛽ ガソリンスタンド(GS)</option>
+          <option value="post_office">📮 郵便局</option>
+          <option value="school">🏫 学校</option>
+          <option value="hospital">🏥 病院</option>
+        </select>
+        <input type="text" id="inputPoiName" list="poiSuggestions" class="poi-name-input" value="交差点" placeholder="表示名 (例: ヤオコー)" style="width: 105px;">
+        <datalist id="poiSuggestions">
+          <option value="ヤオコー"></option>
+          <option value="いなげや"></option>
+          <option value="イオン"></option>
+          <option value="西友"></option>
+          <option value="ライフ"></option>
+          <option value="ベルク"></option>
+          <option value="マミーマート"></option>
+          <option value="カスミ"></option>
+          <option value="業務スーパー"></option>
+        </datalist>
+      </div>
+
+      <!-- 文字配置設定 -->
+      <div id="inspectorText" class="inspector-group" style="display:none;">
+        <span class="tool-group-label">配置文字 (改行可):</span>
+        <input type="text" id="inputTextString" list="textSuggestions" class="poi-name-input" value="至 坂戸駅" placeholder="例: 至 坂戸駅 / 鉄砲道" style="width: 110px;">
+        <datalist id="textSuggestions">
+          <option value="至 坂戸駅"></option>
+          <option value="至 川越駅"></option>
+          <option value="至 大宮駅"></option>
+          <option value="至 池袋"></option>
+          <option value="鉄砲道"></option>
+          <option value="学園通り"></option>
+          <option value="本町通り"></option>
+          <option value="国道16号"></option>
+          <option value="国道254号"></option>
+          <option value="県道"></option>
+        </datalist>
+        <div class="quick-text-chips">
+          <button type="button" class="btn-chip" data-text="至 坂戸駅">至 坂戸駅</button>
+          <button type="button" class="btn-chip" data-text="鉄砲道">鉄砲道</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作ヒント -->
+    <div class="tool-hint" id="modeHint">
+      💡 【選択ツール】要素をクリックして選択・ドラッグ移動できます（文字サイズ・回転・削除の調整可能）
+    </div>
+  </div>
+
+  <!-- メイン作業エリア (左スリムツールバー + 左右分割ビュー) -->
+  <div class="main-workspace">
+    <!-- 左側縦型スリムツールバー (Figma/Illustratorスタイル) -->
+    <nav class="side-toolbar" id="sideToolbar">
+      <button class="tool-icon-btn active" data-mode="select" title="選択ツール (Vキー) - 移動・サイズ変更・回転・削除">
+        <span class="tool-emoji">↖️</span>
+        <span class="tool-name">選択</span>
+      </button>
+
+      <div class="side-divider"></div>
+
+      <button class="tool-icon-btn" data-mode="dest" title="目的地ピン - クリックして物件位置を配置">
+        <span class="tool-emoji">📍</span>
+        <span class="tool-name">目的地</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="major_road" title="大通り (太) - クリック連打で描画、ダブルクリックで完了">
+        <span class="tool-emoji">🛣️</span>
+        <span class="tool-name">大通り</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="medium_road" title="一般道 (中) - クリック連打で描画、ダブルクリックで完了">
+        <span class="tool-emoji">🚗</span>
+        <span class="tool-name">一般道</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="minor_road" title="細道 (小) - クリック連打で描画、ダブルクリックで完了">
+        <span class="tool-emoji">🚶</span>
+        <span class="tool-name">細道</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="railway" title="線路 - クリック連打で描画、ダブルクリックで完了">
+        <span class="tool-emoji">🛤️</span>
+        <span class="tool-name">線路</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="route" title="経路 (赤点線) - クリック連打で描画、ダブルクリックで完了">
+        <span class="tool-emoji">🔴</span>
+        <span class="tool-name">経路</span>
+      </button>
+
+      <div class="side-divider"></div>
+
+      <button class="tool-icon-btn" data-mode="poi" title="施設スタンプ - 信号機・駅・スーパー・コンビニ等を配置">
+        <span class="tool-emoji">📌</span>
+        <span class="tool-name">施設</span>
+      </button>
+
+      <button class="tool-icon-btn" data-mode="text" title="文字・通称 - 道路名や「至 〇〇駅」を配置">
+        <span class="tool-emoji">🔤</span>
+        <span class="tool-name">文字</span>
+      </button>
+
+      <div class="side-divider"></div>
+
+      <button class="tool-icon-btn danger" data-mode="delete" title="削除ツール - クリックした要素を一撃消去">
+        <span class="tool-emoji">🗑️</span>
+        <span class="tool-name">削除</span>
+      </button>
+    </nav>
+
+    <!-- スプリットビュー メインコンテナ (左右50:50) -->
+    <div class="split-container">
+      <!-- 左ペイン: 参照＆なぞり描きマップ -->
+      <div class="split-pane pane-left">
+        <div class="pane-header">
+          <div class="pane-title">
+            <span>◀ 参照・なぞり描き地図</span>
+            <span class="pane-badge">航空写真 / 地図</span>
+          </div>
+          <div class="pane-actions">
+            <span style="font-size: 11px; color: #94a3b8;">※青枠内が出力範囲（左右どちらでも選択・削除可能）</span>
+          </div>
+        </div>
+        <div class="map-wrapper">
+          <div id="referenceMap"></div>
+        </div>
+      </div>
+
+      <!-- 左右の境界線 (リサイザー) -->
+      <div class="split-divider" id="splitDivider"></div>
+
+      <!-- 右ペイン: 案内図ベクターキャンバス (SVG) -->
+      <div class="split-pane pane-right">
+        <div class="pane-header">
+          <div class="pane-title">
+            <span>▶ 完成案内図 (ベクターSVG)</span>
+            <span class="pane-badge success" id="badgeScale">80 × 50 mm</span>
+          </div>
+          <div class="pane-actions">
+            <button id="btnZoomOut" class="tool-btn" title="縮小">-</button>
+            <span id="zoomLevel" style="font-size: 11px; padding: 0 4px;">100%</span>
+            <button id="btnZoomIn" class="tool-btn" title="拡大">+</button>
+            <button id="btnZoomFit" class="tool-btn">画面に合わせる</button>
+            <button id="btnZoomReset" class="tool-btn">原寸</button>
+          </div>
+        </div>
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <div class="preview-card" id="previewCard">
+            <div class="svg-container" id="svgContainer">
+              <!-- リアルタイムでSVGが描画される -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 要素・テキスト プロパティ編集モーダル (折り返し・引き出し線・サイズ・回転) -->
+  <div id="elementPropertyModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span id="modalElementBadge" class="inspector-badge">テキスト</span>
+          <h3 id="modalTitle">要素・テキストのプロパティ設定</h3>
+        </div>
+        <button type="button" id="btnModalClose" class="modal-close-btn" title="閉じる">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form-group">
+          <label class="modal-label">表示テキスト (改行で自動折り返し):</label>
+          <textarea id="modalTextInput" rows="2" class="modal-textarea" placeholder="テキストを入力（Enterで改行）"></textarea>
+          <p class="modal-tip">💡 複数行入力すると、キャンバス上で自動的に折り返して上下中央にレイアウトされます。</p>
+        </div>
+
+        <div class="modal-grid-2">
+          <div class="modal-form-group">
+            <label class="modal-label">文字サイズ: <span id="modalFontSizeVal" class="modal-val">12px</span></label>
+            <input type="range" id="modalFontSizeSlider" min="8" max="32" value="12" class="modal-range">
+            <div class="btn-micro-group" style="margin-top:6px;">
+              <button type="button" class="btn-micro modal-font-preset" data-font="10">小 10</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="12">中 12</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="15">大 15</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="18">特大 18</button>
+            </div>
+          </div>
+
+          <div class="modal-form-group">
+            <label class="modal-label">文字回転: <span id="modalRotationVal" class="modal-val">0°</span></label>
+            <input type="range" id="modalRotationSlider" min="-180" max="180" step="5" value="0" class="modal-range">
+            <div class="btn-micro-group" style="margin-top:6px; flex-wrap:wrap; gap:3px;">
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="0">0°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="30">30°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="-30">-30°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="45">45°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="-45">-45°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="60">60°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="-60">-60°</button>
+              <button type="button" class="btn-micro modal-rot-preset" data-rot="90">90°</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 施設記号サイズ (施設アイコン選択時のみ表示) -->
+        <div class="modal-form-group" id="modalIconScaleGroup" style="display:none;">
+          <label class="modal-label">施設記号（アイコン）サイズ: <span id="modalIconScaleVal" class="modal-val">1.0x</span></label>
+          <input type="range" id="modalIconScaleSlider" min="0.5" max="2.5" step="0.1" value="1.0" class="modal-range">
+        </div>
+
+        <!-- カギ型引き出し線設定 -->
+        <div class="modal-form-group modal-box-highlight">
+          <label class="check-label" style="font-weight:bold; font-size:13px; color:#1e293b;">
+            <input type="checkbox" id="modalLeaderLineCheck">
+            <span>カギ型引き出し線を表示する</span>
+          </label>
+          <p class="modal-tip" style="margin-top:4px; line-height:1.4;">
+            💡 <strong>書き方・使い方:</strong> このチェックをONにした状態で、キャンバス上の文字をアイコンから離れた位置へドラッグすると、対象地点から文字枠へ自動的にクランク型（折れ線）で結ばれます。文字を密集地から外に出したい時に最適です。
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnModalDelete" class="btn-del-item">🗑️ この要素を削除</button>
+        <button type="button" id="btnModalOk" class="btn btn-primary" style="padding:6px 20px;">完了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESモジュール形式でアプリ起動 -->
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

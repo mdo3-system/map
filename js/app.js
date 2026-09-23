@@ -1232,7 +1232,168 @@ document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   const demoScene = urlParams.get("demo_scene");
 
-  if (demoScene) {
+  if (demoScene && demoScene.startsWith("sumairu")) {
+    state.clearAll();
+    const sumairu = {
+      "version": 3,
+      "dest": {
+        "lat": 35.93022197293941,
+        "lon": 139.35954567581553,
+        "name": "住ま居る",
+        "labelOffsetX": -51.1,
+        "labelOffsetY": 19.5,
+        "fontSize": 14,
+        "rotation": 0,
+        "hasLeaderLine": false
+      },
+      "frameCenter": {
+        "lat": 35.93146435912309,
+        "lon": 139.3585036337543
+      },
+      "widthMm": 60,
+      "heightMm": 40,
+      "viewRadiusM": 450,
+      "effectiveRadiusM": 450,
+      "transparentBg": false,
+      "showScale": true,
+      "showCompass": true,
+      "compass": { "x": 498.5, "y": 105.4, "scale": 1 },
+      "railMode": "jr",
+      "roads": [
+        {
+          "id": "road_1", "type": "major",
+          "points": [
+            [35.92988, 139.35462], [35.93014, 139.35495], [35.93065, 139.35546],
+            [35.93093, 139.35563], [35.93132, 139.35570], [35.93149, 139.35574],
+            [35.93156, 139.35579], [35.93199, 139.35635], [35.93256, 139.35706],
+            [35.93364, 139.35851]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        },
+        {
+          "id": "road_2", "type": "medium",
+          "points": [
+            [35.93289, 139.35574], [35.93262, 139.35581], [35.93239, 139.35594],
+            [35.93226, 139.35594], [35.93216, 139.35596], [35.93198, 139.35596],
+            [35.93181, 139.35591], [35.93155, 139.35576]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        },
+        {
+          "id": "road_3", "type": "medium",
+          "points": [
+            [35.92985, 139.36145], [35.93013, 139.36066], [35.93081, 139.35848],
+            [35.93006, 139.35604], [35.93015, 139.35500]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        },
+        {
+          "id": "road_4", "type": "medium",
+          "points": [
+            [35.93153, 139.36249], [35.93013, 139.36068]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        },
+        {
+          "id": "road_5", "type": "minor",
+          "points": [
+            [35.93212, 139.35651], [35.93181, 139.35687], [35.93159, 139.35676],
+            [35.93150, 139.35683], [35.93147, 139.35690], [35.93127, 139.35739],
+            [35.93097, 139.35815], [35.93081, 139.35848]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        },
+        {
+          "id": "road_6", "type": "minor",
+          "points": [
+            [35.92983, 139.35684], [35.93043, 139.35677], [35.93083, 139.35677],
+            [35.93120, 139.35681], [35.93140, 139.35687], [35.93155, 139.35698],
+            [35.93167, 139.35711], [35.93178, 139.35726], [35.93196, 139.35740]
+          ],
+          "casingColor": "#666666", "innerColor": "#ffffff", "filled": false, "fillColor": "#ffe066"
+        }
+      ],
+      "rails": [
+        {
+          "id": "rail_1",
+          "points": [
+            [35.93133, 139.35465], [35.93133, 139.35505], [35.93139, 139.35545],
+            [35.93148, 139.35586], [35.93181, 139.35716], [35.93204, 139.35793],
+            [35.93213, 139.35817], [35.93223, 139.35835], [35.93273, 139.35932]
+          ]
+        }
+      ],
+      "routes": [],
+      "landmarks": [
+        {
+          "id": "poi_station_1", "category": "station", "icon_type": "station",
+          "name": "西大家駅", "lat": 35.93164, "lon": 139.35649,
+          "labelOffsetX": -16, "labelOffsetY": 22, "fontSize": 12
+        },
+        {
+          "id": "poi_lawson_1", "category": "convenience", "icon_type": "lawson",
+          "name": "ローソン", "lat": 35.93042, "lon": 139.36074,
+          "labelOffsetX": 15, "labelOffsetY": -16
+        },
+        {
+          "id": "poi_signal_1", "category": "signal", "icon_type": "signal",
+          "name": "交差点", "lat": 35.93011, "lon": 139.36070,
+          "labelOffsetX": 3, "labelOffsetY": 19
+        },
+        {
+          "id": "poi_signal_2", "category": "signal", "icon_type": "signal",
+          "name": "", "lat": 35.93015, "lon": 139.35497
+        }
+      ],
+      "texts": [
+        { "id": "txt_1", "text": "至 坂戸駅", "lat": 35.93271, "lon": 139.35934, "fontSize": 12 },
+        { "id": "txt_2", "text": "至 川角駅", "lat": 35.93131, "lon": 139.35465, "fontSize": 12 },
+        { "id": "txt_3", "text": "鉄砲道", "lat": 35.93096, "lon": 139.36150, "rotation": -45, "fontSize": 12 },
+        { "id": "txt_4", "text": "東武越生線", "lat": 35.93198, "lon": 139.35827, "rotation": -30, "fontSize": 12 },
+        { "id": "txt_5", "text": "東京国際大学G", "lat": 35.93308, "lon": 139.35539, "fontSize": 11 },
+        { "id": "txt_6", "text": "つるゴンバス転回場", "lat": 35.93148, "lon": 139.35868, "fontSize": 11 }
+      ]
+    };
+    state.dest = { ...sumairu.dest };
+    state.frameCenter = { ...sumairu.frameCenter };
+    state.widthMm = sumairu.widthMm || 60;
+    state.heightMm = sumairu.heightMm || 40;
+    state.viewRadiusM = sumairu.viewRadiusM || 450;
+    state.effectiveRadiusM = sumairu.effectiveRadiusM || 450;
+    state.roads = sumairu.roads || [];
+    state.rails = sumairu.rails || [];
+    state.landmarks = sumairu.landmarks || [];
+    state.texts = sumairu.texts || [];
+
+    if (inputDestName) inputDestName.value = state.dest.name;
+    if (inputWidthMm) inputWidthMm.value = state.widthMm;
+    if (inputHeightMm) inputHeightMm.value = state.heightMm;
+    if (inputAddress) inputAddress.value = "埼玉県坂戸市森戸 (西大家駅周辺)";
+
+    setTimeout(() => {
+      mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
+      mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
+      mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+      mapTrace.updateDestPinIcon();
+    }, 200);
+
+    if (demoScene === "sumairu_modal") {
+      state.selectedId = "poi_station_1";
+      state.selectedType = "landmark";
+      setTimeout(() => {
+        const sel = state.getSelectedElementData();
+        if (sel) openPropertyModal(sel);
+      }, 500);
+    } else if (demoScene === "sumairu_road") {
+      setMode("major_road");
+    } else if (demoScene === "sumairu_poi") {
+      setMode("poi");
+    } else if (demoScene === "sumairu_rail") {
+      setMode("railway");
+    } else if (demoScene === "sumairu_text") {
+      setMode("text");
+    }
+  } else if (demoScene) {
     // マニュアル作成・デモ用のサンプルシーン
     state.clearAll();
     state.dest.lat = 35.90637;
@@ -1329,8 +1490,8 @@ document.addEventListener("DOMContentLoaded", () => {
       leaderOffsetY: 25
     });
 
-    if (demoScene === "modal") {
-      state.selectedId = "poi_super_1";
+    if (demoScene === "modal" || demoScene === "sumairu_modal") {
+      state.selectedId = "poi_station_1";
       state.selectedType = "landmark";
       setTimeout(() => {
         const sel = state.getSelectedElementData();
@@ -1339,15 +1500,15 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (demoScene === "compass") {
       state.selectedId = "compass";
       state.selectedType = "compass";
-    } else if (demoScene === "road_tool") {
+    } else if (demoScene === "road_tool" || demoScene === "sumairu_road") {
       setMode("major_road");
-    } else if (demoScene === "poi_tool") {
+    } else if (demoScene === "poi_tool" || demoScene === "sumairu_poi") {
       setMode("poi");
-    } else if (demoScene === "rail_tool") {
+    } else if (demoScene === "rail_tool" || demoScene === "sumairu_rail") {
       setMode("railway");
     } else if (demoScene === "route_tool") {
       setMode("route");
-    } else if (demoScene === "text_tool") {
+    } else if (demoScene === "text_tool" || demoScene === "sumairu_text") {
       setMode("text");
     } else if (demoScene === "delete_tool") {
       setMode("delete");

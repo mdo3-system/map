@@ -2,6 +2,7 @@
  * スマート案内図エディタ バージョン一元管理ファイル
  * 
  * 【バージョン更新履歴】
+ * - v0.1.10: マニュアルページ(manual.html)の縦スクロールバグ修正(style.css依存解除とoverflow-y解放)
  * - v0.1.9: 実例「住ま居る」案内図に基づく完全図解マニュアル(manual.html / MANUAL.md)の再構築
  * - v0.1.8: 操作マニュアル(manual.html)のWeb公開およびヘッダー「📖 マニュアル」閲覧ボタン新設
  * - v0.1.7: Surface Pro 7および中画面幅(1280px〜1400px)向けヘッダーレイアウト最適化(画像保存ボタンの画面内収束対応)
@@ -12,7 +13,7 @@
  * - v0.1.2: カギ型引き出し線両端ドラッグ、色ピッカー、駅名引き出し線、施設テキスト分離
  * - v0.1.1: 方位5種デザイン、施設記号スライダー、プロパティモーダル、GitHub連携
  */
-const APP_VERSION = "v0.1.9";
+const APP_VERSION = "v0.1.10";
 
 if (typeof window !== "undefined") {
   window.APP_VERSION = APP_VERSION;

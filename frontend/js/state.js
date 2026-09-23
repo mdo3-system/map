@@ -29,7 +29,7 @@ export class AppState {
     this.showScale = true;
     this.showCompass = true;
 
-    this.version = typeof APP_VERSION !== "undefined" ? APP_VERSION : "v0.1.6";
+    this.version = typeof APP_VERSION !== "undefined" ? APP_VERSION : "v0.1.7";
 
     // 方位記号の位置・スケール・デザイン (circle_modern | circle_classic | arrow_simple | compass_rose | real_estate)
     this.compass = {

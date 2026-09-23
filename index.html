@@ -18,7 +18,7 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.6</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.7</span>
       </div>
     </div>
 
@@ -31,14 +31,14 @@
 
       <div class="dest-name-box">
         <label>目的地:</label>
-        <input type="text" id="inputDestName" value="現地" title="案内図に表示する物件・目的地の名前（例: 現地、モデルハウス、A区画）" placeholder="目的地名" style="width: 76px; background: #0b0f19; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 6px; color: #fff; font-size: 12px; font-weight: bold; text-align: center;">
+        <input type="text" id="inputDestName" value="現地" title="案内図に表示する物件・目的地の名前（例: 現地、モデルハウス、A区画）" placeholder="目的地名" style="width: 58px; background: #0b0f19; border: 1px solid var(--border-color); border-radius: 4px; padding: 3px 5px; color: #fff; font-size: 11.5px; font-weight: bold; text-align: center;">
       </div>
 
       <div class="size-box">
         <label>枠(mm):</label>
-        <input type="number" id="inputWidthMm" value="80" min="30" max="300" step="5" style="width: 48px;">
+        <input type="number" id="inputWidthMm" value="80" min="30" max="300" step="5" style="width: 42px;">
         <span>×</span>
-        <input type="number" id="inputHeightMm" value="50" min="30" max="300" step="5" style="width: 48px;">
+        <input type="number" id="inputHeightMm" value="50" min="30" max="300" step="5" style="width: 42px;">
       </div>
 
       <div class="header-options">
@@ -64,15 +64,15 @@
       <button id="btnLoad" class="btn btn-load" title="保存済みJSONファイルを読み込む">📂 読込</button>
       <input type="file" id="inputLoadFile" accept=".json" style="display:none;">
       <div class="header-divider"></div>
-      <button id="btnExportSvg" class="btn btn-primary" title="Illustratorで編集可能なベクター形式">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        SVG 出力
+      <button id="btnExportSvg" class="btn btn-primary" title="Illustratorで編集可能なベクター形式 (SVG)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        SVG保存
       </button>
-      <button id="btnExportPng" class="btn btn-secondary" title="高解像度画像 (350dpi)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        PNG 出力
+      <button id="btnExportPng" class="btn btn-secondary" title="高解像度画像 (PNG 350dpi)" style="background:#0284c7; color:#fff; border-color:#38bdf8;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        PNG保存
       </button>
-      <button id="btnClearAll" class="btn btn-danger" title="すべての作図をリセット">🗑️ 全消去</button>
+      <button id="btnClearAll" class="btn btn-danger" title="すべての作図をリセット">🗑️</button>
     </div>
   </header>
 

@@ -1557,7 +1557,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (demoScene === "sumairu_text") {
       setMode("text");
     }
-  } else if (demoScene) {
+  } else if (demoScene && demoScene !== "permit_demo") {
     // マニュアル作成・デモ用のサンプルシーン
     state.clearAll();
     state.dest.lat = 35.90637;

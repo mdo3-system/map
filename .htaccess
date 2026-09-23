@@ -1,6 +1,5 @@
-# スマート案内図エディタ ルート転送設定
+# スマート案内図エディタ 設定
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # ルートアクセスを frontend/ へリライト
-  RewriteRule ^$ frontend/ [L]
+  RewriteBase /
 </IfModule>

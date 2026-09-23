@@ -1365,7 +1365,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   const demoScene = urlParams.get("demo_scene");
 
-  if (demoScene && demoScene.startsWith("sumairu")) {
+  if (demoScene === "permit_demo") {
+    state.clearAll();
+    state.appMode = "permit";
+    state.dest.lat = 35.93022197293941;
+    state.dest.lon = 139.35954567581553;
+    state.dest.name = "申請地";
+    state.frameCenter = { lat: 35.93022, lon: 139.35954 };
+    state.widthMm = 297;
+    state.heightMm = 210;
+    state.permitInfo = {
+      title: "付近見取図",
+      lotNumber: "埼玉県坂戸市森戸字向山123番4",
+      address: "埼玉県坂戸市森戸3-5-12",
+      scale: 2500,
+      baseMapType: "pale",
+      paperSize: "A4_landscape",
+      boxPosition: "bottom-right",
+      siteSymbol: "double_circle",
+      applicant: "住ま居る 設計部"
+    };
+    state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(2500, 297);
+    if (inputDestName) inputDestName.value = "申請地";
+    if (inputWidthMm) inputWidthMm.value = 297;
+    if (inputHeightMm) inputHeightMm.value = 210;
+    if (inputAddress) inputAddress.value = "埼玉県坂戸市森戸 (西大家駅周辺)";
+
+    setTimeout(() => {
+      mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
+      mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
+      mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+    }, 200);
+  } else if (demoScene && demoScene.startsWith("sumairu")) {
     state.clearAll();
     const sumairu = {
       "version": 3,

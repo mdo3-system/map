@@ -1009,13 +1009,38 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!q) return;
 
     try {
-      const res = await fetch("/api/geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: q })
-      });
-      if (!res.ok) throw new Error("住所が見つかりませんでした");
-      const d = await res.json();
+      let lat = null;
+      let lon = null;
+
+      // 1. バックエンドAPI経由を試行
+      try {
+        const res = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: q })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          lat = d.lat;
+          lon = d.lon;
+        }
+      } catch (backendErr) {
+        console.log("Backend geocode unavailable, falling back to GSI API:", backendErr);
+      }
+
+      // 2. 静的サーバー（Xserver等）用の国土地理院API直接フォールバック
+      if (lat === null || lon === null) {
+        const gsiRes = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`);
+        if (!gsiRes.ok) throw new Error("住所検索に失敗しました");
+        const gsiData = await gsiRes.json();
+        if (gsiData && gsiData.length > 0 && gsiData[0].geometry) {
+          lon = gsiData[0].geometry.coordinates[0];
+          lat = gsiData[0].geometry.coordinates[1];
+        } else {
+          throw new Error("該当する住所が見つかりませんでした");
+        }
+      }
+
       state.saveToHistory();
 
       // 新規作図のため要素クリア
@@ -1026,17 +1051,17 @@ document.addEventListener("DOMContentLoaded", () => {
       state.texts = [];
       state.drawingPoints = [];
 
-      state.dest.lat = d.lat;
-      state.dest.lon = d.lon;
+      state.dest.lat = lat;
+      state.dest.lon = lon;
       state.dest.name = (inputDestName ? inputDestName.value.trim() : "") || "現地";
-      state.frameCenter.lat = d.lat;
-      state.frameCenter.lon = d.lon;
+      state.frameCenter.lat = lat;
+      state.frameCenter.lon = lon;
       state.viewRadiusM = 450;
       state.effectiveRadiusM = 450;
 
-      mapTrace.map.setView([d.lat, d.lon], 16);
-      mapTrace.destMarker.setLatLng([d.lat, d.lon]);
-      mapTrace.frameCenterMarker.setLatLng([d.lat, d.lon]);
+      mapTrace.map.setView([lat, lon], 16);
+      mapTrace.destMarker.setLatLng([lat, lon]);
+      mapTrace.frameCenterMarker.setLatLng([lat, lon]);
       mapTrace.updateDestPinIcon();
       syncAll();
       showToast(`「${q}」を表示しました`);

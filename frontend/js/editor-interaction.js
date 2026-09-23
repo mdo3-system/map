@@ -220,6 +220,17 @@ export class EditorInteractionController {
               txt.lon = newLon;
               if (this.callbacks.onShowToast) this.callbacks.onShowToast(`「${txt.text}」の位置を更新しました`);
             }
+
+          // 6. 自由テキストの引き出し線対象地点アンカー (両端ドラッグ)
+          } else if (elType === "text-anchor") {
+            const parentId = target.getAttribute("data-parent-id");
+            const txt = this.state.findText(parentId);
+            if (txt) {
+              const [txtSvgX, txtSvgY] = GeoUtil.geoToSvg(txt.lon, txt.lat, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+              txt.leaderOffsetX = finalX - txtSvgX;
+              txt.leaderOffsetY = finalY - txtSvgY;
+              if (this.callbacks.onShowToast) this.callbacks.onShowToast("引き出し線の対象地点を更新しました");
+            }
           }
 
           if (this.callbacks.onStateChange) this.callbacks.onStateChange();

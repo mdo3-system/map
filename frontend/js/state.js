@@ -16,7 +16,8 @@ export class AppState {
       labelOffsetY: -24,
       fontSize: 14,
       rotation: 0,
-      hasLeaderLine: false
+      hasLeaderLine: false,
+      bgColor: "#d32f2f"
     };
 
     this.frameCenter = { lat: 35.90637, lon: 139.62550 };
@@ -28,7 +29,7 @@ export class AppState {
     this.showScale = true;
     this.showCompass = true;
 
-    this.version = "v0.1.1";
+    this.version = "v0.1.2";
 
     // 方位記号の位置・スケール・デザイン (circle_modern | circle_classic | arrow_simple | compass_rose | real_estate)
     this.compass = {
@@ -155,16 +156,26 @@ export class AppState {
   // 要素の削除
   deleteElement(id, type) {
     this.saveToHistory();
-    const strId = String(id);
+    const strId = String(id).replace("label_", "").replace("icon_", "");
     let deletedName = "";
 
-    if (type === "text" || this.findText(strId)) {
+    // テキスト・ラベルのみの削除
+    if (type === "landmark-label") {
+      const p = this.findLandmark(strId);
+      if (p) {
+        deletedName = `${p.name || '施設'}の文字`;
+        p.name = ""; // テキストのみ削除し、アイコン記号はそのまま残す
+      }
+    } else if (type === "dest-label") {
+      deletedName = "目的地プレート";
+      this.dest.name = "";
+    } else if (type === "text" || this.findText(strId)) {
       const t = this.findText(strId);
       deletedName = t ? t.text : "文字";
       this.texts = this.texts.filter(x => String(x.id) !== strId);
-    } else if (type === "landmark-icon" || type === "landmark-label" || this.findLandmark(strId)) {
+    } else if (type === "landmark-icon" || this.findLandmark(strId)) {
       const p = this.findLandmark(strId);
-      deletedName = p ? p.name : "施設";
+      deletedName = p ? (p.name || "施設") : "施設";
       this.landmarks = this.landmarks.filter(x => String(x.id) !== strId);
     } else if (this.roads.some(x => String(x.id) === strId)) {
       deletedName = "道路";
@@ -177,7 +188,7 @@ export class AppState {
       this.routes = this.routes.filter(x => String(x.id) !== strId);
     }
 
-    if (String(this.selectedId) === strId) {
+    if (String(this.selectedId) === strId || String(this.selectedId) === String(id)) {
       this.selectedId = null;
       this.selectedType = null;
     }

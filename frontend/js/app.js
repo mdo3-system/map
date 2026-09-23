@@ -60,6 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const inspectorIconScaleDivider = document.getElementById("inspectorIconScaleDivider");
   const btnOpenPropModal = document.getElementById("btnOpenPropModal");
 
+  // プレート塗り色
+  const inspectorPlateBgColor = document.getElementById("inspectorPlateBgColor");
+  const inspectorPlateBgField = document.getElementById("inspectorPlateBgField");
+  const inspectorPlateBgDivider = document.getElementById("inspectorPlateBgDivider");
+
   // 方位記号インスペクター
   const inspectorCompass = document.getElementById("inspectorCompass");
   const selectCompassDesign = document.getElementById("selectCompassDesign");
@@ -78,10 +83,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalIconScaleGroup = document.getElementById("modalIconScaleGroup");
   const modalIconScaleSlider = document.getElementById("modalIconScaleSlider");
   const modalIconScaleVal = document.getElementById("modalIconScaleVal");
+  const modalPlateBgGroup = document.getElementById("modalPlateBgGroup");
+  const modalPlateBgColor = document.getElementById("modalPlateBgColor");
   const modalLeaderLineCheck = document.getElementById("modalLeaderLineCheck");
   const btnModalClose = document.getElementById("btnModalClose");
   const btnModalOk = document.getElementById("btnModalOk");
   const btnModalDelete = document.getElementById("btnModalDelete");
+  const btnModalClearText = document.getElementById("btnModalClearText");
 
   // 線路インスペクター
   const inspectorRail = document.getElementById("inspectorRail");
@@ -223,6 +231,17 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           inspectorIconScaleField.style.display = "none";
           inspectorIconScaleDivider.style.display = "none";
+        }
+
+        // プレート塗りつぶし色の表示制御 (目的地または駅)
+        const isStn = (sel.type === "landmark" && (sel.data.category === "station" || sel.data.icon_type === "station"));
+        if (sel.type === "dest" || isStn) {
+          inspectorPlateBgField.style.display = "flex";
+          inspectorPlateBgDivider.style.display = "block";
+          inspectorPlateBgColor.value = sel.type === "dest" ? (sel.data.bgColor || "#d32f2f") : (sel.data.bgColor || "#1e3a8a");
+        } else {
+          inspectorPlateBgField.style.display = "none";
+          inspectorPlateBgDivider.style.display = "none";
         }
 
         if (sel.type === "dest") {
@@ -410,6 +429,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let rotation = 0;
     let hasLeader = !!sel.data.hasLeaderLine;
 
+    const isStn = (sel.type === "landmark" && (sel.data.category === "station" || sel.data.icon_type === "station"));
+    const isSig = (sel.type === "landmark" && (sel.data.icon_type === "signal" || sel.data.category === "signal"));
+
     if (sel.type === "dest") {
       titleText = "目的地（ピン・プレート）設定";
       badgeText = "目的地";
@@ -417,10 +439,11 @@ document.addEventListener("DOMContentLoaded", () => {
       fontSize = sel.data.fontSize || 14;
       rotation = sel.data.rotation || 0;
       modalIconScaleGroup.style.display = "none";
+      modalPlateBgGroup.style.display = "flex";
+      modalPlateBgColor.value = sel.data.bgColor || "#d32f2f";
+      btnModalClearText.style.display = "inline-flex";
       btnModalDelete.style.display = "none";
     } else if (sel.type === "landmark") {
-      const isStn = (sel.data.category === "station" || sel.data.icon_type === "station");
-      const isSig = (sel.data.icon_type === "signal" || sel.data.category === "signal");
       badgeText = isStn ? "駅" : isSig ? "信号機" : "施設";
       titleText = `${badgeText}（${sel.data.name || "名称未設定"}）設定`;
       currentText = sel.data.name || "";
@@ -433,6 +456,15 @@ document.addEventListener("DOMContentLoaded", () => {
       modalIconScaleSlider.value = iScale;
       modalIconScaleVal.textContent = `${iScale.toFixed(1)}x`;
 
+      // 駅名プレート色
+      if (isStn) {
+        modalPlateBgGroup.style.display = "flex";
+        modalPlateBgColor.value = sel.data.bgColor || "#1e3a8a";
+      } else {
+        modalPlateBgGroup.style.display = "none";
+      }
+
+      btnModalClearText.style.display = "inline-flex";
       btnModalDelete.style.display = "inline-flex";
     } else if (sel.type === "text") {
       badgeText = "文字";
@@ -441,6 +473,8 @@ document.addEventListener("DOMContentLoaded", () => {
       fontSize = sel.data.fontSize || 12;
       rotation = sel.data.rotation || 0;
       modalIconScaleGroup.style.display = "none";
+      modalPlateBgGroup.style.display = "none";
+      btnModalClearText.style.display = "none";
       btnModalDelete.style.display = "inline-flex";
     } else {
       elementPropertyModal.style.display = "none";
@@ -594,6 +628,52 @@ document.addEventListener("DOMContentLoaded", () => {
       inspectorLeaderLine.checked = modalLeaderLineCheck.checked;
       renderSvg();
     }
+  });
+
+  // プレート塗りつぶし色 (インスペクター & モーダル)
+  function applyPlateBgColor(col) {
+    const sel = state.getSelectedElementData();
+    if (!sel) return;
+    state.saveToHistory();
+    sel.data.bgColor = col;
+    inspectorPlateBgColor.value = col;
+    modalPlateBgColor.value = col;
+    renderSvg();
+  }
+
+  inspectorPlateBgColor.addEventListener("input", () => {
+    applyPlateBgColor(inspectorPlateBgColor.value);
+  });
+
+  modalPlateBgColor.addEventListener("input", () => {
+    applyPlateBgColor(modalPlateBgColor.value);
+  });
+
+  document.querySelectorAll(".modal-color-preset").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const col = btn.dataset.color;
+      applyPlateBgColor(col);
+    });
+  });
+
+  // モーダル内「文字のみ削除（記号を残す）」
+  btnModalClearText.addEventListener("click", () => {
+    const sel = state.getSelectedElementData();
+    if (!sel) return;
+    state.saveToHistory();
+    modalTextInput.value = "";
+    inspectorName.value = "";
+    if (sel.type === "landmark") {
+      sel.data.name = "";
+      mapTrace.syncDrawnLayers();
+      showToast("文字を削除し、記号（アイコン）のみ残しました");
+    } else if (sel.type === "dest") {
+      sel.data.name = "";
+      mapTrace.updateDestPinIcon();
+      showToast("目的地名称プレートを削除し、ピンのみ残しました");
+    }
+    renderSvg();
+    closePropertyModal();
   });
 
   // 線路モード切り替え (JR / 私鉄)

@@ -216,12 +216,12 @@ export class SvgBuilder {
     });
 
     // Layer 4: 引き出し線 (Leader Lines - カギ型対応)
-    // 4-1. 施設の引き出し線
+    // 4-1. 施設・駅の引き出し線
     state.landmarks.forEach(p => {
-      if (p.hasLeaderLine) {
+      if (p.hasLeaderLine && p.name && p.name.trim()) {
         const [ix, iy] = GeoUtil.geoToSvg(p.lon, p.lat, wPx, hPx, state.frameCenter, state.effectiveRadiusM, state.widthMm, state.heightMm);
-        const lox = p.labelOffsetX !== undefined ? p.labelOffsetX : (p.icon_type === "signal" ? 0 : 14);
-        const loy = p.labelOffsetY !== undefined ? p.labelOffsetY : (p.icon_type === "signal" ? -14 : 4);
+        const lox = p.labelOffsetX !== undefined ? p.labelOffsetX : (p.icon_type === "signal" ? 0 : p.category === "station" ? 0 : 14);
+        const loy = p.labelOffsetY !== undefined ? p.labelOffsetY : (p.icon_type === "signal" ? -14 : p.category === "station" ? -22 : 4);
         const lx = ix + lox;
         const ly = iy + loy;
         svg += SvgBuilder.buildLeaderLine(ix, iy, lx, ly);
@@ -229,7 +229,7 @@ export class SvgBuilder {
     });
 
     // 4-2. 目的地の引き出し線
-    if (state.dest.hasLeaderLine) {
+    if (state.dest.hasLeaderLine && state.dest.name && state.dest.name.trim()) {
       const [dx, dy] = GeoUtil.geoToSvg(state.dest.lon, state.dest.lat, wPx, hPx, state.frameCenter, state.effectiveRadiusM, state.widthMm, state.heightMm);
       const dlox = state.dest.labelOffsetX !== undefined ? state.dest.labelOffsetX : 16;
       const dloy = state.dest.labelOffsetY !== undefined ? state.dest.labelOffsetY : -24;
@@ -238,15 +238,24 @@ export class SvgBuilder {
       svg += SvgBuilder.buildLeaderLine(dx, dy, dlx, dly);
     }
 
-    // 4-3. 自由テキストの引き出し線
+    // 4-3. 自由テキストの引き出し線 ＆ 対象地点アンカーハンドル（両端ドラッグ可能）
     (state.texts || []).forEach(t => {
       if (t.hasLeaderLine) {
         const [tx, ty] = GeoUtil.geoToSvg(t.lon, t.lat, wPx, hPx, state.frameCenter, state.effectiveRadiusM, state.widthMm, state.heightMm);
-        const lox = t.leaderOffsetX !== undefined ? t.leaderOffsetX : -24;
-        const loy = t.leaderOffsetY !== undefined ? t.leaderOffsetY : 24;
+        const lox = t.leaderOffsetX !== undefined ? t.leaderOffsetX : -30;
+        const loy = t.leaderOffsetY !== undefined ? t.leaderOffsetY : 30;
         const ax = tx + lox;
         const ay = ty + loy;
         svg += SvgBuilder.buildLeaderLine(ax, ay, tx, ty);
+
+        // 対象地点（指し示す○印）ハンドル
+        const isAnchorSelected = (String(state.selectedId) === `anchor_${t.id}`);
+        svg += `
+          <g id="anchor_${t.id}" data-type="text-anchor" data-parent-id="${t.id}" class="draggable leader-anchor-el ${isAnchorSelected ? 'is-selected' : ''}" transform="translate(${ax.toFixed(1)}, ${ay.toFixed(1)})" title="🖱️ 引き出し線の対象地点（ここを指す）をドラッグして移動">
+            <circle cx="0" cy="0" r="5.5" fill="#e11d48" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.3))"/>
+            <circle cx="0" cy="0" r="2" fill="#ffffff"/>
+          </g>
+        `;
       }
     });
 
@@ -297,7 +306,10 @@ export class SvgBuilder {
       }
       svg += `</g>`;
 
-      // --- 5-2. ラベル部分 (文字サイズ・回転・複数行折り返し対応) ---
+      // --- 5-2. ラベル部分 (文字サイズ・回転・複数行折り返し対応・背景色対応) ---
+      // 名前が空（削除された、または交差点名不要の信号機）の場合はラベルを描画しない
+      if (!p.name || !p.name.trim()) return;
+
       const fSize = p.fontSize || 11.5;
       const rot = p.rotation || 0;
       const rotAttr = rot !== 0 ? `rotate(${rot})` : '';
@@ -305,8 +317,8 @@ export class SvgBuilder {
       const isSignal = (p.icon_type === "signal" || p.category === "signal");
       const isStation = (p.category === "station" || p.icon_type === "station");
 
-      const defaultLox = isSignal ? 0 : isStation ? 0 : 14;
-      const defaultLoy = isSignal ? -14 : isStation ? -22 : 4;
+      const defaultLox = isSignal ? 0 : isStation ? 0 : 18;
+      const defaultLoy = isSignal ? -16 : isStation ? -24 : 0;
 
       const lox = p.labelOffsetX !== undefined ? p.labelOffsetX : defaultLox;
       const loy = p.labelOffsetY !== undefined ? p.labelOffsetY : defaultLoy;
@@ -321,9 +333,10 @@ export class SvgBuilder {
         const sw = Math.max(maxLineLen * (fSize + 2) + 20, 70);
         const sh = (fSize * 1.25) * textLines.length + 10;
         const multilineSvg = SvgBuilder.renderMultilineText(p.name, fSize, "middle");
+        const stnBg = p.bgColor || "#1e3a8a";
         svg += `<g id="label_${p.id}" data-type="landmark-label" data-parent-id="${p.id}" class="draggable landmark-label-el ${labelSelectedClass}" transform="translate(${lx.toFixed(1)}, ${ly.toFixed(1)}) ${rotAttr}" title="🖱️ 駅名プレートのみドラッグで移動 / クリックで選択">
-          <rect x="${-sw/2}" y="${-sh/2}" width="${sw}" height="${sh}" fill="#ffffff" stroke="#1e3a8a" stroke-width="2.5"/>
-          <rect x="${-sw/2 + 2}" y="${-sh/2 + 2}" width="${sw - 4}" height="${sh - 4}" fill="#1e3a8a"/>
+          <rect x="${-sw/2}" y="${-sh/2}" width="${sw}" height="${sh}" fill="#ffffff" stroke="${stnBg}" stroke-width="2.5"/>
+          <rect x="${-sw/2 + 2}" y="${-sh/2 + 2}" width="${sw - 4}" height="${sh - 4}" fill="${stnBg}"/>
           <text x="0" y="0" text-anchor="middle" class="map-text station-label" fill="#ffffff" font-weight="bold" font-size="${fSize}px">${multilineSvg}</text>
         </g>`;
       } else if (isSignal) {
@@ -334,12 +347,12 @@ export class SvgBuilder {
           <text x="0" y="0" text-anchor="middle" class="map-text poi-label" font-size="${fSize}px" fill="#1e293b">${multilineSvgMain}</text>
         </g>`;
       } else {
-        const anchor = lox < -5 ? "end" : lox > 5 ? "start" : "middle";
-        const multilineSvgHalo = SvgBuilder.renderMultilineText(p.name, fSize, anchor);
-        const multilineSvgMain = SvgBuilder.renderMultilineText(p.name, fSize, anchor);
+        // 一般施設ラベル：常に中央アンカーでブレずに360度自由配置
+        const multilineSvgHalo = SvgBuilder.renderMultilineText(p.name, fSize, "middle");
+        const multilineSvgMain = SvgBuilder.renderMultilineText(p.name, fSize, "middle");
         svg += `<g id="label_${p.id}" data-type="landmark-label" data-parent-id="${p.id}" class="draggable landmark-label-el ${labelSelectedClass}" transform="translate(${lx.toFixed(1)}, ${ly.toFixed(1)}) ${rotAttr}" title="🖱️ 文字のみドラッグで移動 / クリックで選択">
-          <text x="0" y="0" text-anchor="${anchor}" class="map-text poi-label halo-stroke" font-size="${fSize}px">${multilineSvgHalo}</text>
-          <text x="0" y="0" text-anchor="${anchor}" class="map-text poi-label" font-size="${fSize}px" fill="#1e293b">${multilineSvgMain}</text>
+          <text x="0" y="0" text-anchor="middle" class="map-text poi-label halo-stroke" font-size="${fSize}px">${multilineSvgHalo}</text>
+          <text x="0" y="0" text-anchor="middle" class="map-text poi-label" font-size="${fSize}px" fill="#1e293b">${multilineSvgMain}</text>
         </g>`;
       }
     });
@@ -383,22 +396,26 @@ export class SvgBuilder {
     const isDestIconSelected = (state.selectedType === "dest-icon" || state.selectedId === "dest_pin");
     const isDestLabelSelected = (state.selectedType === "dest-label" || state.selectedId === "dest_label");
 
+    const destBg = state.dest.bgColor || "#d32f2f";
+
     // 7-1. ピン本体
     svg += `
       <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${destX.toFixed(1)}, ${destY.toFixed(1)})" title="🖱️ ピン本体をドラッグで位置移動 / クリックで選択">
-        <path d="M 0 0 C -11 -11 -13 -22 0 -32 C 13 -22 11 -11 0 0 Z" fill="#d32f2f" stroke="#ffffff" stroke-width="2"/>
+        <path d="M 0 0 C -11 -11 -13 -22 0 -32 C 13 -22 11 -11 0 0 Z" fill="${destBg}" stroke="#ffffff" stroke-width="2"/>
         <circle cx="0" cy="-20" r="4.5" fill="#ffffff"/>
       </g>
     `;
 
-    // 7-2. 名称プレート (「現地」など)
-    const multilineDest = SvgBuilder.renderMultilineText(destName, destFSize, "middle");
-    svg += `
-      <g id="dest_label" data-type="dest-label" class="draggable dest-label-el ${isDestLabelSelected ? 'is-selected' : ''}" transform="translate(${destLabelX.toFixed(1)}, ${destLabelY.toFixed(1)}) ${destRotAttr}" title="🖱️ 「${destLines[0]}」プレートのみドラッグで移動 / クリックで選択">
-        <rect x="${-tW/2}" y="${-tH/2}" width="${tW}" height="${tH}" rx="6" ry="6" fill="#d32f2f" stroke="#ffffff" stroke-width="2.2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
-        <text x="0" y="0" text-anchor="middle" class="map-text dest-label" font-size="${destFSize}px">${multilineDest}</text>
-      </g>
-    `;
+    // 7-2. 名称プレート (「現地」など - 空なら描画しない)
+    if (destName && destName.trim()) {
+      const multilineDest = SvgBuilder.renderMultilineText(destName, destFSize, "middle");
+      svg += `
+        <g id="dest_label" data-type="dest-label" class="draggable dest-label-el ${isDestLabelSelected ? 'is-selected' : ''}" transform="translate(${destLabelX.toFixed(1)}, ${destLabelY.toFixed(1)}) ${destRotAttr}" title="🖱️ 「${destLines[0]}」プレートのみドラッグで移動 / クリックで選択">
+          <rect x="${-tW/2}" y="${-tH/2}" width="${tW}" height="${tH}" rx="6" ry="6" fill="${destBg}" stroke="#ffffff" stroke-width="2.2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+          <text x="0" y="0" text-anchor="middle" class="map-text dest-label" font-size="${destFSize}px">${multilineDest}</text>
+        </g>
+      `;
+    }
 
     // Layer 8: 方位記号 (N) - 5種類デザイン・ドラッグ移動・サイズ変更対応
     if (state.showCompass) {

@@ -265,7 +265,7 @@
     <h1>
       <span>🗺️</span>
       <span>スマート案内図エディタ 公式マニュアル</span>
-      <span class="badge-ver">v0.1.10</span>
+      <span class="badge-ver">v0.1.11</span>
     </h1>
     <a href="./" class="btn-return">← エディタを開く</a>
   </nav>
@@ -316,6 +316,56 @@
           <li><strong>チラシのあらゆる枠サイズに使い回せる:</strong> B4折込チラシの角の狭い枠、A4パンフレットのワイドな横長枠、ポスターの特大枠など、入れたいスペースに合わせて縦横自在に拡大・縮小して何度でも活用できます。</li>
           <li><strong>Illustratorで完全編集可能:</strong> SVG保存したデータはAdobe Illustratorで開けば、パス単位・文字単位でそのまま編集できます。</li>
         </ul>
+      </div>
+    </div>
+
+    <!-- 新機能：確認申請モード (1/2500 付近見取図) -->
+    <div class="section-card" style="border-left: 4px solid #dc2626;">
+      <h3 style="color: #f87171; display:flex; align-items:center; gap:8px;">
+        <span>📑 新機能: 建築確認申請・見取図モード (縮尺 1/2,500)</span>
+      </h3>
+      <p>
+        ヘッダーの <strong>「📑 確認申請 (1/2500)」</strong> をクリックすると、建築確認申請や開発許可申請の添付図面（建築基準法施行規則第1条の3等の「付近見取図・案内図 縮尺1/2500程度」）を即座に作成できる専用モードに切り替わります。
+      </p>
+
+      <div class="table-spec">
+        <table style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width: 25%;">機能・項目</th>
+              <th>説明・メリット</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1/2,500 厳密縮尺管理</strong></td>
+              <td>A4用紙（横297×縦210mm等）において、1mm = 2.5m の正確な法定縮尺を自動計算。50m / 100m / 200m の測定スケールバーを自動配置。</td>
+            </tr>
+            <tr>
+              <td><strong>国土地理院 白図/淡色図</strong></td>
+              <td>申請図面の実務で最も使われる「淡色地図（建物輪郭・等高線あり）」または「白地図（シンプル白黒）」を背景に自動合成。</td>
+            </tr>
+            <tr>
+              <td><strong>地名地番・住居表示 表題欄</strong></td>
+              <td>図面右下に「付近見取図」「申請地 地名地番」「住居表示」「縮尺 1/2,500」「作成日」を美麗なプロ仕様枠（表題ブロック）で自動描画。</td>
+            </tr>
+            <tr>
+              <td><strong>申請地シンボル（◎）</strong></td>
+              <td>申請地ピンを「赤二重丸（◎）」と「申請地」バッジで強調。審査機関の担当者が一目で現地を把握できます。</td>
+            </tr>
+            <tr>
+              <td><strong>既存ツールとの自由な併用</strong></td>
+              <td>白図の上に、既存の「施設スタンプ（駅・コンビニ・信号機・公共施設）」「道路名・至〇〇駅テキスト」「進入経路（赤点線）」をそのまま重ねて配置可能。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tips-box" style="border-left-color: #dc2626; background: rgba(220, 38, 38, 0.1); color: #fecaca;">
+        💡 <strong>確認申請図面の作り方（3ステップ）:</strong><br>
+        1. 画面上の <strong>「📑 確認申請 (1/2500)」</strong> ボタンを押す。<br>
+        2. 住所検索で申請地を指定し、<strong>「地名地番」</strong> と <strong>「住居表示」</strong> を入力する。<br>
+        3. 必要に応じて主要道路や駅・コンビニを配置し、<strong>「SVG保存」</strong> または <strong>「PNG保存」</strong> で完了！
       </div>
     </div>
 

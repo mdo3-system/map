@@ -60,5 +60,37 @@ export const GeoUtil = {
     const dy = (lat2 - lat1) * mPerLat;
     const dx = (lon2 - lon1) * mPerLon;
     return Math.sqrt(dx * dx + dy * dy);
+  },
+
+  /**
+   * 縮尺 1/scale と 用紙幅 widthMm (mm) から厳密な実効視野半径 (m) を算出
+   * 例: scale=2500, widthMm=297 (A4横) -> 297 * 2.5 / 2 = 371.25m
+   */
+  scaleToEffectiveRadius(scale, widthMm) {
+    const metersPerMm = scale / 1000.0;
+    const totalWidthMeters = widthMm * metersPerMm;
+    return totalWidthMeters / 2.0;
+  },
+
+  /**
+   * 緯度経度を Webメルカトル タイル座標 (x, y) に変換
+   */
+  lonLatToTile(lon, lat, zoom) {
+    const n = Math.pow(2, zoom);
+    const x = Math.floor((lon + 180.0) / 360.0 * n);
+    const latRad = (lat * Math.PI) / 180.0;
+    const y = Math.floor((1.0 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2.0 * n);
+    return { x, y, z: zoom };
+  },
+
+  /**
+   * タイル座標 (x, y, zoom) の北西端（左上）の緯度経度 [lon, lat]
+   */
+  tileToLonLat(x, y, zoom) {
+    const n = Math.pow(2, zoom);
+    const lon = (x / n) * 360.0 - 180.0;
+    const latRad = Math.atan(Math.sinh(Math.PI * (1.0 - (2.0 * y) / n)));
+    const lat = (latRad * 180.0) / Math.PI;
+    return { lon, lat };
   }
 };

@@ -18,9 +18,15 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.10</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.11</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
+    </div>
+
+    <!-- モード切り替えタブ (案内図 ⇄ 確認申請1/2500) -->
+    <div class="mode-switch-group">
+      <button id="btnModeAd" class="mode-tab active" title="不動産広告・チラシ・Web用案内図モード（なぞり描き・自由作図）">🏢 案内図</button>
+      <button id="btnModePermit" class="mode-tab" title="建築確認申請・見取図モード（1/2500国土地理院白図）">📑 確認申請 (1/2500)</button>
     </div>
 
     <!-- 検索 & 基本設定 -->
@@ -81,6 +87,55 @@
   <div class="sub-bar">
     <!-- 選択時またはツールに応じたコンテキストプロパティパネル -->
     <div id="inspectorPanel" class="inspector-panel">
+      <!-- 確認申請モード用 図面情報入力バー -->
+      <div id="inspectorPermit" class="inspector-group" style="display:none; flex-wrap:nowrap; gap:6px;">
+        <span class="inspector-badge" style="background:#dc2626; color:#fff;">📑 確認申請</span>
+        <label class="inspector-field">図名:
+          <input type="text" id="permitTitle" value="付近見取図" style="width:72px; padding:2px 4px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">地名地番:
+          <input type="text" id="permitLotNumber" placeholder="例: 坂戸市大字西坂戸3丁目123番4" style="width:160px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">住居表示:
+          <input type="text" id="permitAddress" placeholder="例: 坂戸市西坂戸3-5-12" style="width:130px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">背景図:
+          <select id="permitBaseMap" class="poi-select" style="padding:2px 4px; font-size:11px;">
+            <option value="pale">淡色地図 (標準・推奨)</option>
+            <option value="blank">白地図 (シンプル白黒)</option>
+            <option value="std">標準地図 (等高線・カラー)</option>
+          </select>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">縮尺:
+          <select id="permitScale" class="poi-select" style="padding:2px 4px; font-size:11px; font-weight:bold; color:#dc2626;">
+            <option value="2500">1/2,500 (法定標準)</option>
+            <option value="1500">1/1,500 (近隣拡大)</option>
+            <option value="5000">1/5,000 (広域)</option>
+          </select>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">用紙:
+          <select id="permitPaperSize" class="poi-select" style="padding:2px 4px; font-size:11px;">
+            <option value="A4_landscape">A4横 (297×210mm)</option>
+            <option value="A4_portrait">A4縦 (210×297mm)</option>
+            <option value="box_standard">申請書枠 (150×100mm)</option>
+            <option value="custom">現在枠サイズ</option>
+          </select>
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">表題欄:
+          <select id="permitBoxPosition" class="poi-select" style="padding:2px 4px; font-size:11px;">
+            <option value="bottom-right">右下</option>
+            <option value="bottom-left">左下</option>
+            <option value="top-right">右上</option>
+          </select>
+        </label>
+      </div>
+
       <!-- 選択ツール時: 要素が選択されている時のプロパティ -->
       <div id="inspectorSelected" class="inspector-group" style="display:none;">
         <span class="inspector-badge" id="selectedBadge">選択中</span>

@@ -39,6 +39,22 @@ export class AppState {
       design: "circle_modern"
     };
 
+    // モード切替: "ad" (チラシ・Web用案内図) | "permit" (確認申請・1/2500見取図)
+    this.appMode = "ad";
+
+    // 確認申請用情報ボックス (表題欄) 設定
+    this.permitInfo = {
+      title: "付近見取図",
+      lotNumber: "",         // 申請地 地名地番 (例: 埼玉県坂戸市大字西坂戸三丁目123番4)
+      address: "",           // 住居表示 (例: 埼玉県坂戸市西坂戸三丁目5番12号)
+      scale: 2500,           // 縮尺 (2500)
+      baseMapType: "pale",   // "pale"(淡色地図) | "blank"(白地図) | "std"(標準地図)
+      paperSize: "A4_landscape", // "A4_landscape"(297x210) | "A4_portrait"(210x297) | "custom"
+      boxPosition: "bottom-right", // "bottom-right" | "bottom-left" | "top-right"
+      siteSymbol: "double_circle", // "double_circle"(赤二重丸) | "pin"(ピン) | "flag"(赤旗)
+      applicant: ""          // 申請者/設計者名 (任意)
+    };
+
     // 線路モード (jr | private)
     this.railMode = "jr";
 
@@ -198,7 +214,9 @@ export class AppState {
   // JSON保存
   exportJson() {
     const data = {
-      version: 3,
+      version: 4,
+      appMode: this.appMode,
+      permitInfo: this.permitInfo,
       dest: this.dest,
       frameCenter: this.frameCenter,
       widthMm: this.widthMm,
@@ -223,6 +241,8 @@ export class AppState {
   importJson(jsonString) {
     const data = JSON.parse(jsonString);
     this.saveToHistory();
+    if (data.appMode) this.appMode = data.appMode;
+    if (data.permitInfo) this.permitInfo = { ...this.permitInfo, ...data.permitInfo };
     if (data.dest) this.dest = { ...this.dest, ...data.dest };
     if (data.frameCenter) this.frameCenter = { ...this.frameCenter, ...data.frameCenter };
     if (data.widthMm) this.widthMm = data.widthMm;
@@ -247,6 +267,8 @@ export class AppState {
   autoSave() {
     try {
       const data = {
+        appMode: this.appMode,
+        permitInfo: this.permitInfo,
         dest: this.dest,
         frameCenter: this.frameCenter,
         widthMm: this.widthMm,
@@ -259,16 +281,18 @@ export class AppState {
         landmarks: this.landmarks,
         texts: this.texts
       };
-      localStorage.setItem("annaizu_autosave_v3", JSON.stringify(data));
+      localStorage.setItem("annaizu_autosave_v4", JSON.stringify(data));
     } catch (e) { /* 容量オーバー時は無視 */ }
   }
 
   // localStorage からの復元
   restoreAutoSave() {
     try {
-      const saved = localStorage.getItem("annaizu_autosave_v3") || localStorage.getItem("annaizu_autosave_v2");
+      const saved = localStorage.getItem("annaizu_autosave_v4") || localStorage.getItem("annaizu_autosave_v3") || localStorage.getItem("annaizu_autosave_v2");
       if (!saved) return false;
       const data = JSON.parse(saved);
+      if (data.appMode) this.appMode = data.appMode;
+      if (data.permitInfo) this.permitInfo = { ...this.permitInfo, ...data.permitInfo };
       const hasContent = (data.roads && data.roads.length > 0) ||
                          (data.rails && data.rails.length > 0) ||
                          (data.routes && data.routes.length > 0) ||

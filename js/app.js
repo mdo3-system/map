@@ -21,6 +21,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const checkScale = document.getElementById("checkScale");
   const checkCompass = document.getElementById("checkCompass");
 
+  // モード切り替えタブ
+  const btnModeAd = document.getElementById("btnModeAd");
+  const btnModePermit = document.getElementById("btnModePermit");
+
+  // 確認申請インスペクター要素
+  const inspectorPermit = document.getElementById("inspectorPermit");
+  const permitTitle = document.getElementById("permitTitle");
+  const permitLotNumber = document.getElementById("permitLotNumber");
+  const permitAddress = document.getElementById("permitAddress");
+  const permitBaseMap = document.getElementById("permitBaseMap");
+  const permitScale = document.getElementById("permitScale");
+  const permitPaperSize = document.getElementById("permitPaperSize");
+  const permitBoxPosition = document.getElementById("permitBoxPosition");
+
   const btnUndo = document.getElementById("btnUndo");
   const btnSave = document.getElementById("btnSave");
   const btnLoad = document.getElementById("btnLoad");
@@ -974,8 +988,127 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSvg();
   });
 
+  // モード切り替え関数 (案内図モード ⇄ 確認申請モード)
+  function setAppMode(mode) {
+    state.appMode = mode;
+    if (btnModeAd) btnModeAd.classList.toggle("active", mode === "ad");
+    if (btnModePermit) {
+      btnModePermit.classList.toggle("permit-active", mode === "permit");
+      btnModePermit.classList.toggle("active", mode === "permit");
+    }
+
+    if (mode === "permit") {
+      if (inspectorPermit) inspectorPermit.style.display = "flex";
+      // 申請モード時はデフォルトで 1/2500 の厳密スケールを反映
+      const scale = (state.permitInfo && state.permitInfo.scale) || 2500;
+      // 用紙が案内図用の小さめのサイズなら、標準A4横(297×210mm)を適用
+      if (state.widthMm < 150) {
+        state.widthMm = 297;
+        state.heightMm = 210;
+        inputWidthMm.value = state.widthMm;
+        inputHeightMm.value = state.heightMm;
+        if (permitPaperSize) permitPaperSize.value = "A4_landscape";
+      }
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(scale, state.widthMm);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${scale})`;
+      mapTrace.updateFramingRectangle();
+      showToast("📑 【確認申請モード】1/2500 国土地理院白図・見取図モードに切り替えました");
+    } else {
+      if (inspectorPermit) inspectorPermit.style.display = "none";
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
+      showToast("🏢 【案内図モード】チラシ・Web用案内図モードに切り替えました");
+    }
+    syncAll();
+  }
+
+  if (btnModeAd) {
+    btnModeAd.addEventListener("click", () => setAppMode("ad"));
+  }
+  if (btnModePermit) {
+    btnModePermit.addEventListener("click", () => setAppMode("permit"));
+  }
+
+  // 確認申請インスペクターのイベントリスナー
+  if (permitTitle) {
+    permitTitle.addEventListener("input", (e) => {
+      state.saveToHistory();
+      state.permitInfo.title = e.target.value;
+      renderSvg();
+    });
+  }
+  if (permitLotNumber) {
+    permitLotNumber.addEventListener("input", (e) => {
+      state.saveToHistory();
+      state.permitInfo.lotNumber = e.target.value;
+      renderSvg();
+    });
+  }
+  if (permitAddress) {
+    permitAddress.addEventListener("input", (e) => {
+      state.saveToHistory();
+      state.permitInfo.address = e.target.value;
+      renderSvg();
+    });
+  }
+  if (permitBaseMap) {
+    permitBaseMap.addEventListener("change", (e) => {
+      state.saveToHistory();
+      state.permitInfo.baseMapType = e.target.value;
+      renderSvg();
+      showToast(`背景地図を「${e.target.options[e.target.selectedIndex].text}」に切り替えました`);
+    });
+  }
+  if (permitScale) {
+    permitScale.addEventListener("change", (e) => {
+      state.saveToHistory();
+      const s = parseInt(e.target.value) || 2500;
+      state.permitInfo.scale = s;
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+      mapTrace.updateFramingRectangle();
+      renderSvg();
+      showToast(`縮尺を「1/${s.toLocaleString()}」に設定しました`);
+    });
+  }
+  if (permitPaperSize) {
+    permitPaperSize.addEventListener("change", (e) => {
+      state.saveToHistory();
+      const val = e.target.value;
+      state.permitInfo.paperSize = val;
+      if (val === "A4_landscape") {
+        state.widthMm = 297;
+        state.heightMm = 210;
+      } else if (val === "A4_portrait") {
+        state.widthMm = 210;
+        state.heightMm = 297;
+      } else if (val === "box_standard") {
+        state.widthMm = 150;
+        state.heightMm = 100;
+      }
+      inputWidthMm.value = state.widthMm;
+      inputHeightMm.value = state.heightMm;
+      const s = (state.permitInfo && state.permitInfo.scale) || 2500;
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+      mapTrace.updateFramingRectangle();
+      renderSvg();
+      showToast(`用紙枠を「${e.target.options[e.target.selectedIndex].text}」に変更しました`);
+    });
+  }
+  if (permitBoxPosition) {
+    permitBoxPosition.addEventListener("change", (e) => {
+      state.saveToHistory();
+      state.permitInfo.boxPosition = e.target.value;
+      renderSvg();
+    });
+  }
+
   inputWidthMm.addEventListener("change", () => {
     state.widthMm = parseFloat(inputWidthMm.value) || 80;
+    if (state.appMode === "permit") {
+      const s = (state.permitInfo && state.permitInfo.scale) || 2500;
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm);
+    }
     if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
     mapTrace.updateFramingRectangle();
     renderSvg();
@@ -1527,5 +1660,34 @@ document.addEventListener("DOMContentLoaded", () => {
     setMode("select");
   }
 
+  function syncPermitUI() {
+    if (state.appMode === "permit") {
+      if (btnModeAd) btnModeAd.classList.remove("active");
+      if (btnModePermit) {
+        btnModePermit.classList.add("permit-active");
+        btnModePermit.classList.add("active");
+      }
+      if (inspectorPermit) inspectorPermit.style.display = "flex";
+      if (permitTitle) permitTitle.value = state.permitInfo.title || "付近見取図";
+      if (permitLotNumber) permitLotNumber.value = state.permitInfo.lotNumber || "";
+      if (permitAddress) permitAddress.value = state.permitInfo.address || "";
+      if (permitBaseMap) permitBaseMap.value = state.permitInfo.baseMapType || "pale";
+      if (permitScale) permitScale.value = state.permitInfo.scale || 2500;
+      if (permitPaperSize) permitPaperSize.value = state.permitInfo.paperSize || "A4_landscape";
+      if (permitBoxPosition) permitBoxPosition.value = state.permitInfo.boxPosition || "bottom-right";
+      const s = (state.permitInfo && state.permitInfo.scale) || 2500;
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+    } else {
+      if (btnModeAd) btnModeAd.classList.add("active");
+      if (btnModePermit) {
+        btnModePermit.classList.remove("permit-active");
+        btnModePermit.classList.remove("active");
+      }
+      if (inspectorPermit) inspectorPermit.style.display = "none";
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
+    }
+  }
+
+  syncPermitUI();
   syncAll();
 });

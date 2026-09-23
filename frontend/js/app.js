@@ -1204,17 +1204,142 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 15. 初期化実行
-  const restored = state.restoreAutoSave();
-  if (restored) {
-    if (inputDestName) inputDestName.value = state.dest.name;
-    if (inputWidthMm) inputWidthMm.value = state.widthMm;
-    if (inputHeightMm) inputHeightMm.value = state.heightMm;
-    mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
-    mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
-    mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
-    mapTrace.updateDestPinIcon();
+  const urlParams = new URLSearchParams(window.location.search);
+  const demoScene = urlParams.get("demo_scene");
+
+  if (demoScene) {
+    // マニュアル作成・デモ用のサンプルシーン
+    state.clearAll();
+    state.dest.lat = 35.90637;
+    state.dest.lon = 139.62550;
+    state.dest.name = "現地\n(モデルハウス)";
+    state.dest.bgColor = "#d32f2f";
+    state.dest.labelOffsetX = 24;
+    state.dest.labelOffsetY = -28;
+    state.dest.hasLeaderLine = true;
+
+    // 大通り
+    state.roads.push({
+      id: "road_major_1",
+      type: "major",
+      points: [[35.9035, 139.6210], [35.9065, 139.6280]],
+      casingColor: "#555555",
+      innerColor: "#ffffff"
+    });
+    // 一般道
+    state.roads.push({
+      id: "road_med_1",
+      type: "medium",
+      points: [[35.9080, 139.6220], [35.9040, 139.6260]],
+      casingColor: "#666666",
+      innerColor: "#ffffff"
+    });
+    // 線路 (私鉄 & JR)
+    state.rails.push({
+      id: "rail_1",
+      points: [[35.9090, 139.6215], [35.9030, 139.6245]],
+      mode: "private"
+    });
+    // 駅
+    state.landmarks.push({
+      id: "poi_station_1",
+      category: "station",
+      icon_type: "station",
+      name: "大宮駅\n(東口)",
+      lat: 35.9075,
+      lon: 139.6225,
+      labelOffsetX: 0,
+      labelOffsetY: -26,
+      fontSize: 13,
+      hasLeaderLine: true,
+      bgColor: "#1e3a8a",
+      iconScale: 1.1
+    });
+    // 信号機（交差点名あり）
+    state.landmarks.push({
+      id: "poi_signal_1",
+      category: "signal",
+      icon_type: "signal",
+      name: "大門町交差点",
+      lat: 35.9055,
+      lon: 139.6250,
+      labelOffsetX: 0,
+      labelOffsetY: -16,
+      fontSize: 11
+    });
+    // 信号機（交差点名なし・ただの信号）
+    state.landmarks.push({
+      id: "poi_signal_plain",
+      category: "signal",
+      icon_type: "signal",
+      name: "",
+      lat: 35.9045,
+      lon: 139.6235,
+      labelOffsetX: 0,
+      labelOffsetY: 0
+    });
+    // スーパー
+    state.landmarks.push({
+      id: "poi_super_1",
+      category: "supermarket",
+      icon_type: "supermarket",
+      name: "ヤオコー",
+      lat: 35.9060,
+      lon: 139.6270,
+      labelOffsetX: 20,
+      labelOffsetY: 0,
+      hasLeaderLine: true,
+      iconScale: 1.2
+    });
+    // 自由テキスト（カギ型引き出し線付き）
+    state.texts.push({
+      id: "text_demo_1",
+      text: "至 坂戸駅",
+      lat: 35.9085,
+      lon: 139.6285,
+      fontSize: 12,
+      rotation: -30,
+      hasLeaderLine: true,
+      leaderOffsetX: -35,
+      leaderOffsetY: 25
+    });
+
+    if (demoScene === "modal") {
+      state.selectedId = "poi_super_1";
+      state.selectedType = "landmark";
+      setTimeout(() => {
+        const sel = state.getSelectedElementData();
+        if (sel) openPropertyModal(sel);
+      }, 300);
+    } else if (demoScene === "compass") {
+      state.selectedId = "compass";
+      state.selectedType = "compass";
+    } else if (demoScene === "road_tool") {
+      setMode("major_road");
+    } else if (demoScene === "poi_tool") {
+      setMode("poi");
+    } else if (demoScene === "rail_tool") {
+      setMode("railway");
+    } else if (demoScene === "route_tool") {
+      setMode("route");
+    } else if (demoScene === "text_tool") {
+      setMode("text");
+    } else if (demoScene === "delete_tool") {
+      setMode("delete");
+    }
+  } else {
+    const restored = state.restoreAutoSave();
+    if (restored) {
+      if (inputDestName) inputDestName.value = state.dest.name;
+      if (inputWidthMm) inputWidthMm.value = state.widthMm;
+      if (inputHeightMm) inputHeightMm.value = state.heightMm;
+      mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
+      mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+      mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
+      mapTrace.updateDestPinIcon();
+    }
+    setMode("select");
   }
 
-  setMode("select"); // デフォルトは安全な選択ツール
   syncAll();
 });

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>操作マニュアル | スマート案内図エディタ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.7;
+      margin: 0;
+      padding: 0;
+    }
+    .manual-header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .manual-header h1 {
+      font-size: 16px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+    .manual-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 30px 20px 80px 20px;
+    }
+    .manual-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    h2 {
+      font-size: 20px;
+      color: #60a5fa;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    h3 {
+      font-size: 16px;
+      color: #38bdf8;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    p, li {
+      font-size: 14.5px;
+      color: #cbd5e1;
+    }
+    .feature-box {
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid #3b82f6;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+    .table-compare {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13.5px;
+    }
+    .table-compare th, .table-compare td {
+      border: 1px solid #475569;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .table-compare th {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .table-compare tr:nth-child(even) {
+      background: rgba(51, 65, 85, 0.4);
+    }
+    .manual-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      margin: 15px 0 6px 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .img-caption {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .step-badge {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-right: 6px;
+    }
+    a.btn-back {
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12.5px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    a.btn-back:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="manual-header">
+    <h1>
+      <span>📖</span>
+      <span>スマート案内図エディタ 操作マニュアル (v0.1.8)</span>
+    </h1>
+    <a href="./" class="btn-back">← エディタに戻る</a>
+  </header>
+
+  <div class="manual-container">
+
+    <div class="manual-card">
+      <img src="docs/images/manual_screen_complete.png" alt="スマート案内図エディタ 画面全体" class="manual-img">
+      <div class="img-caption">図1: スマート案内図エディタの全体画面（左：なぞり描き実地図 / 右：完成案内図ベクターキャンバス）</div>
+
+      <h2>★ 本ツールの最大の核心：実地図をなぞるだけ（Googleマップ距離測定感覚）</h2>
+      <div class="feature-box">
+        <strong>💡 なぜこれほど速く、圧倒的に綺麗に描けるのか？</strong><br>
+        従来のIllustrator（イラレ）で作図する場合、下絵スクショを敷き、ペンツールでベジェ曲線を引き、線幅を調整し、交差点をアウトライン化してパスファインダーで合体・中抜きするなど、1枚に1〜2時間（修正時は半日）かかっていました。<br>
+        本ツールは、<strong>Googleマップで「距離を測定」するように、道路や線路の真ん中（流心）をポチポチとクリックしていくだけ</strong>で、地球上の緯度経度を拾い、外枠線（ケーシング）付きのベクター道路やJR枕木・私鉄2重線がリアルタイムに自動製図されます！
+      </div>
+
+      <table class="table-compare">
+        <thead>
+          <tr>
+            <th>工程・作業項目</th>
+            <th>従来のIllustrator（手作業）</th>
+            <th>スマート案内図エディタ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>下絵の準備</strong></td>
+            <td>地図スクショを撮り、イラレに配置してロック</td>
+            <td><strong>検索バーに住所や駅名を入れるだけで即座に下絵展開</strong></td>
+          </tr>
+          <tr>
+            <td><strong>道路の描画</strong></td>
+            <td>ペンツールでパスを引き、線幅を手動調整</td>
+            <td><strong>道路の流心をGoogleマップ感覚でクリック連打するだけ</strong></td>
+          </tr>
+          <tr>
+            <td><strong>交差点の処理</strong></td>
+            <td>線をアウトライン化し、合体・くり抜き手作業</td>
+            <td><strong>交差点同士が自動マージ（ケーシングが綺麗に一体化）</strong></td>
+          </tr>
+          <tr>
+            <td><strong>線路の描画</strong></td>
+            <td>白黒ストライプや2重線パターンを手動自作</td>
+            <td><strong>流心をなぞるだけでJR枕木／私鉄2重線が瞬時に完成</strong></td>
+          </tr>
+          <tr>
+            <td><strong>航空写真トレース</strong></td>
+            <td>別途航空写真を用意して位置合わせ</td>
+            <td><strong>ワンタップで国土地理院の最新航空写真に切替可能</strong></td>
+          </tr>
+          <tr>
+            <td><strong>所要時間</strong></td>
+            <td>1枚あたり <strong>1〜2時間</strong></td>
+            <td>1枚あたり <strong>わずか2〜3分</strong> で完成！</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="manual-card">
+      <h2>左メニューツール別 操作手順（上から順）</h2>
+
+      <h3>1. ↖️ 選択ツール (ショートカット: V)</h3>
+      <p>要素の選択、移動、プロパティ編集を行う基本ツールです。</p>
+      <ul>
+        <li><strong>要素の選択・編集:</strong> 要素をクリックすると、プロパティ編集モーダルが開き、文字・色・サイズをいつでも変更可能。</li>
+        <li><strong>個別ドラッグ移動:</strong> 目的地ピン、現地プレート、駅名プレート、施設アイコン、自由テキスト、方位記号などを個別にドラッグして微調整できます。</li>
+        <li><strong>削除:</strong> 要素を選択して <code>Delete</code> キーを押すと即座に削除できます。</li>
+      </ul>
+
+      <h3>2. 📍 目的地ツール (現地・販売区画ピン)</h3>
+      <p>案内図の中心となる目的地（物件現地、モデルハウスなど）を配置します。左地図をクリックするだけで、右案内図上にピンと名称プレートが配置されます。プレート色（赤・青・緑・黒・オレンジ等）も自由に変更可能です。</p>
+
+      <h3>3. 🛣️ 大通り / 4. 🚗 一般道 / 5. 🚶 細道ツール</h3>
+      <img src="docs/images/manual_screen_road.png" alt="道路スタイル設定" class="manual-img">
+      <div class="img-caption">図2: 道路ツール選択時のスタイルインスペクター（外枠色・内側色・塗りつぶし）</div>
+      <ul>
+        <li><span class="step-badge">操作手順</span> 左画面の道路の<strong>流心（中心線）をクリック連打</strong>していき、終点で<strong>ダブルクリック</strong>すると描画が完了します。</li>
+        <li>直線は角と交差点の2〜3点、カーブは適度な間隔で4〜5点クリックするだけで滑らかにつながります。</li>
+      </ul>
+
+      <h3>6. 🚆 線路ツール (JR線・私鉄線モード)</h3>
+      <img src="docs/images/manual_screen_rail.png" alt="線路モード設定" class="manual-img">
+      <div class="img-caption">図3: 線路モード設定（JR線 白黒枕木 / 私鉄線 2重白抜き実線）</div>
+      <ul>
+        <li><strong>JR線:</strong> 白黒の枕木ストライプ模様</li>
+        <li><strong>私鉄線:</strong> 地図デザインで標準的な「2重白抜き実線」</li>
+        <li>線路の中心をテンポよくクリック連打し、ダブルクリックで完了します。</li>
+      </ul>
+
+      <h3>7. 🔴 経路ツール (アクセス経路・赤点線)</h3>
+      <p>最寄り駅から物件現地までのルートをクリック連打でなぞると、見やすい赤点線でルートが描画されます。</p>
+
+      <h3>8. 🏪 施設配置ツール (信号機・駅・スーパー・コンビニ)</h3>
+      <img src="docs/images/manual_screen_poi.png" alt="施設スタンプ設定" class="manual-img">
+      <div class="img-caption">図4: 施設スタンプ設定（信号機・駅・スーパー・コンビニ・ガソリンスタンド等）</div>
+      <ul>
+        <li>信号機、駅、スーパー、学校、コンビニ各社、ガソリンスタンド等の目印スタンプを配置できます。</li>
+        <li><strong>記号サイズ:</strong> 0.5倍〜2.5倍にスライダーで自由に拡大・縮小。</li>
+        <li><strong>文字のみ削除（ただの信号機）:</strong> 交差点名が不要な「ただの信号機」にしたい場合は、モーダル内の「📝 文字のみ削除」を押すだけで記号単体にできます。</li>
+      </ul>
+
+      <h3>9. 🔤 文字配置ツール (自由テキスト・至〜駅)</h3>
+      <p>「至 坂戸駅」や道路の通称（鉄砲道など）を配置します。カギ型引き出し線も利用可能で、テキスト位置と指し示す○印の両方をドラッグできます。</p>
+
+      <h3>10. 🗑️ 削除ツール</h3>
+      <p>消したい道路、線路、施設、文字をクリックして次々に消去できる消しゴムモードです（Ctrl+Zで復元可能）。</p>
+    </div>
+
+    <div class="manual-card">
+      <h2>プロパティ編集モーダル & 方位記号</h2>
+      <img src="docs/images/manual_screen_modal.png" alt="プロパティ編集モーダル" class="manual-img">
+      <div class="img-caption">図5: 要素・テキスト プロパティ編集モーダル</div>
+
+      <img src="docs/images/manual_screen_compass.png" alt="方位記号設定" class="manual-img">
+      <div class="img-caption">図6: 方位記号の5種類デザイン選択・サイズ倍率調整</div>
+      <ul>
+        <li><strong>自動折り返し:</strong> テキスト入力でEnterを押すと、案内図上で自動的に上下中央揃えに折り返され、背景枠も自動調整されます。</li>
+        <li><strong>文字回転:</strong> 0°、30°、-30°、45°、60°、90°などのワンタップボタンで、道路や線路の傾きにぴったり揃えられます。</li>
+        <li><strong>方位記号5種:</strong> 丸枠モダン、クラシック4方位、シンプル矢印、コンパスローズ、不動産案内図三角から選択可能。四隅へ自由にドラッグできます。</li>
+      </ul>
+    </div>
+
+    <div class="manual-card">
+      <h2>保存・復元・書き出し</h2>
+      <ul>
+        <li><strong>💾 保存:</strong> 作図データ全般を JSON ファイルとしてPCに保存します (Ctrl+S)。</li>
+        <li><strong>📂 読込:</strong> 保存した JSON ファイルを読み込み、作図を再開できます。</li>
+        <li><strong>SVG保存:</strong> Adobe Illustrator等でパス単位で完全編集できる高品位ベクターデータを書き出します。</li>
+        <li><strong>PNG保存:</strong> チラシ印刷用（350dpi相当）の高解像度画像を書き出します。</li>
+      </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px;">
+      <a href="./" class="btn-back" style="padding: 10px 28px; font-size: 15px;">スマート案内図エディタを開く</a>
+    </div>
+
+  </div>
+
+</body>
+</html>

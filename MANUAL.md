@@ -1,8 +1,8 @@
-# スマート案内図エディタ 操作マニュアル (v0.1.7)
+# スマート案内図エディタ 操作マニュアル (v0.1.8)
 
 本マニュアルでは、不動産・住宅チラシ向け「スマート案内図エディタ」の画期的な作図メカニズム、画面構成、各ツールの詳しい操作手順、およびXserver等での静的サーバー運用について解説します。
 
-![案内図エディタ 全体画面](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_complete.png)
+![案内図エディタ 全体画面](docs/images/manual_screen_complete.png)
 *図1: スマート案内図エディタの全体画面（左：なぞり描き地図 / 右：完成案内図ベクターキャンバス）*
 
 ---
@@ -91,7 +91,7 @@ Googleマップで右クリックして「距離を測定」を選び、道路�
 ### 3. 🛣️ 大通りツール (太線・国道/幹線道路)
 国道や主要幹線道路を描画します。道路は外枠線（ケーシング）と内側線が美しく一体化して交差します。
 
-![道路スタイル設定](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_road.png)
+![道路スタイル設定](docs/images/manual_screen_road.png)
 *図2: 道路ツール選択時のスタイルインスペクター（外枠色・内側色・塗りつぶし）*
 
 - **なぞり描きのコツ**:
@@ -118,7 +118,7 @@ Googleマップで右クリックして「距離を測定」を選び、道路�
 ### 6. 🚆 線路ツール (JR枕木ストライプ / 私鉄2重白抜き線)
 鉄道の線路を描画します。日本の地図規格に準拠した2種類のモードを選択できます。
 
-![線路モード設定](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_rail.png)
+![線路モード設定](docs/images/manual_screen_rail.png)
 *図3: 線路モード設定（JR線 白黒枕木 / 私鉄線 2重白抜き実線）*
 
 - **モード切替**:
@@ -140,7 +140,7 @@ Googleマップで右クリックして「距離を測定」を選び、道路�
 ### 8. 🏪 施設配置ツール (信号機・駅・スーパー・コンビニ等)
 目印となる周辺施設や信号機スタンプを配置します。
 
-![施設スタンプ設定](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_poi.png)
+![施設スタンプ設定](docs/images/manual_screen_poi.png)
 *図4: 施設スタンプ設定（信号機・駅・スーパー・コンビニ・ガソリンスタンド等）*
 
 - **種類一覧**:
@@ -181,7 +181,7 @@ Googleマップで右クリックして「距離を測定」を選び、道路�
 
 文字や施設、駅名、目的地をクリックまたはダブルクリックすると、大きなプロパティモーダルが表示されます。
 
-![プロパティモーダル](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_modal.png)
+![プロパティモーダル](docs/images/manual_screen_modal.png)
 *図5: 要素・テキスト プロパティ編集モーダル*
 
 1. **表示テキスト（自動折り返し）**:
@@ -204,7 +204,7 @@ Googleマップで右クリックして「距離を測定」を選び、道路�
 
 ## 方位記号 (Nマーク) のカスタマイズ
 
-![方位記号設定](/C:/Users/user/.gemini/antigravity-ide/brain/41bb2640-2c60-4204-8794-979300299688/manual_screen_compass.png)
+![方位記号設定](docs/images/manual_screen_compass.png)
 *図6: 方位記号のデザイン選択・サイズ倍率調整*
 
 - **移動**:
@@ -259,7 +259,7 @@ Xserverのサブドメイン用フォルダ（`/home/mdo3/mdo3.com/public_html/m
 
 ## バージョン管理・デプロイ運用規定
 
-- **現在のバージョン**: **`v0.1.7`** (`frontend/js/version.js` および `js/version.js` にて一元管理)
+- **現在のバージョン**: **`v0.1.8`** (`frontend/js/version.js` および `js/version.js` にて一元管理)
 - **厳守ルール**:
   - 詳細は [DEPLOY_RULES.md](DEPLOY_RULES.md) を参照。
   - いかなる些細な修正でも末尾のバージョン番号を +1 します。

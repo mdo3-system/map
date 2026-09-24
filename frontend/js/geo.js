@@ -63,12 +63,13 @@ export const GeoUtil = {
   },
 
   /**
-   * 縮尺 1/scale と 用紙幅 widthMm (mm) から厳密な実効視野半径 (m) を算出
-   * 例: scale=2500, widthMm=297 (A4横) -> 297 * 2.5 / 2 = 371.25m
+   * 縮尺 1/scale と 用紙幅 widthMm (mm)、余白 marginMm (mm) から厳密な実効視野半径 (m) を算出
+   * 例: scale=2500, widthMm=297, marginMm=10 (A4横) -> (297 - 20) * 2.5 / 2 = 346.25m
    */
-  scaleToEffectiveRadius(scale, widthMm) {
+  scaleToEffectiveRadius(scale, widthMm, marginMm = 0) {
+    const innerWidthMm = Math.max(widthMm - (marginMm * 2), 10);
     const metersPerMm = scale / 1000.0;
-    const totalWidthMeters = widthMm * metersPerMm;
+    const totalWidthMeters = innerWidthMm * metersPerMm;
     return totalWidthMeters / 2.0;
   },
 

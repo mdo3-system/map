@@ -290,5 +290,58 @@ export class MapTraceController {
 
       m.addTo(this.drawnLayersGroup);
     });
+
+    // 6. 区画（敷地ポリゴン）
+    if (this.state.lots && this.state.lots.length > 0) {
+      this.state.lots.forEach(lot => {
+        if (!lot.points || lot.points.length < 3) return;
+        const latlngs = lot.points.map(p => [p.lat, p.lon]);
+        const isSite = !!lot.isSite;
+        const isSelected = (this.state.selectedId === lot.id);
+
+        const poly = L.polygon(latlngs, {
+          color: isSelected ? "#2563eb" : (isSite ? "#dc2626" : "#64748b"),
+          weight: isSelected ? 3.5 : (isSite ? 2.5 : 1.5),
+          fillColor: isSite ? "#ef4444" : "#f8fafc",
+          fillOpacity: isSite ? 0.35 : 0.2,
+          dashArray: isSite ? null : "4, 4",
+          interactive: true
+        }).addTo(this.drawnLayersGroup);
+
+        poly.on("click", (ev) => {
+          L.DomEvent.stop(ev);
+          if (this.state.mode === "delete") {
+            if (this.callbacks.onDeleteElement) this.callbacks.onDeleteElement(lot.id, "lot");
+          } else {
+            if (this.callbacks.onElementSelect) this.callbacks.onElementSelect(lot.id, "lot");
+          }
+        });
+
+        poly.on("dblclick", (ev) => {
+          L.DomEvent.stop(ev);
+          if (this.callbacks.onEditLot) {
+            this.callbacks.onEditLot(lot);
+          } else if (this.callbacks.onElementSelect) {
+            this.callbacks.onElementSelect(lot.id, "lot");
+          }
+        });
+
+        // 区画の中央付近にラベル表示
+        const labelText = lot.label || (isSite ? "申請地" : "");
+        if (labelText) {
+          let centerLat = 0, centerLon = 0;
+          lot.points.forEach(p => { centerLat += p.lat; centerLon += p.lon; });
+          centerLat /= lot.points.length;
+          centerLon /= lot.points.length;
+
+          const labelIcon = L.divIcon({
+            html: `<div style="background:${isSite ? '#dc2626' : '#475569'}; color:#fff; font-size:10px; font-weight:bold; padding:1px 5px; border-radius:3px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,0.3); pointer-events:none;">${labelText}</div>`,
+            iconAnchor: [15, 8],
+            className: "custom-lot-label"
+          });
+          L.marker([centerLat, centerLon], { icon: labelIcon, interactive: false }).addTo(this.drawnLayersGroup);
+        }
+      });
+    }
   }
 }

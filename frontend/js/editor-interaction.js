@@ -7,7 +7,7 @@ export class EditorInteractionController {
   constructor(svgContainer, state, callbacks) {
     this.svgContainer = svgContainer;
     this.state = state;
-    this.callbacks = callbacks || {}; // { onStateChange, onElementSelect, onDeleteElement, onShowToast, onEditName }
+    this.callbacks = callbacks || {}; // { onStateChange, onElementSelect, onDeleteElement, onShowToast, onEditName, onEditLot }
 
     this.bindWindowEvents();
   }
@@ -18,6 +18,23 @@ export class EditorInteractionController {
     pt.y = evt.clientY;
     const transformed = pt.matrixTransform(svg.getScreenCTM().inverse());
     return { x: transformed.x, y: transformed.y };
+  }
+
+  getPlotMetrics() {
+    const isPermit = (this.state.appMode === "permit");
+    const marginMm = isPermit ? (this.state.permitInfo?.marginMm !== undefined ? this.state.permitInfo.marginMm : 10) : 0;
+    const pxPerMm = 10.0;
+    const marginPx = marginMm * pxPerMm;
+
+    const curW = isPermit ? (this.state.widthMm - marginMm * 2) * pxPerMm : this.state.widthMm * pxPerMm;
+    const curH = isPermit ? (this.state.heightMm - marginMm * 2) * pxPerMm : this.state.heightMm * pxPerMm;
+    const curWMm = isPermit ? (this.state.widthMm - marginMm * 2) : this.state.widthMm;
+    const curHMm = isPermit ? (this.state.heightMm - marginMm * 2) : this.state.heightMm;
+    const effRadius = isPermit 
+      ? GeoUtil.scaleToEffectiveRadius(this.state.permitInfo?.scale || 2500, this.state.widthMm, marginMm)
+      : (this.state.effectiveRadiusM || this.state.viewRadiusM);
+
+    return { isPermit, marginPx, curW, curH, curWMm, curHMm, effRadius };
   }
 
   bindSvgDraggables() {
@@ -68,13 +85,18 @@ export class EditorInteractionController {
         }
       });
 
-      // 3. ダブルクリック（名称変更）
+      // 3. ダブルクリック（名称変更 / モーダル表示）
       el.addEventListener("dblclick", (e) => {
         e.preventDefault();
         e.stopPropagation();
         const elType = el.getAttribute("data-type");
         const elId = el.getAttribute("data-id") || el.id;
-        if (this.callbacks.onEditName) {
+
+        if (elType === "lot") {
+          if (this.callbacks.onEditLot) {
+            this.callbacks.onEditLot(elId);
+          }
+        } else if (this.callbacks.onEditName) {
           this.callbacks.onEditName(elId, elType);
         }
       });
@@ -100,7 +122,7 @@ export class EditorInteractionController {
     svgEl.addEventListener("click", (e) => {
       if (this.state.hasMoved) return;
 
-      // 施設や文字以外の背景クリック時は選択解除
+      // 施設や文字、区画以外の背景クリック時は選択解除
       if (!e.target.closest(".draggable")) {
         if (this.callbacks.onElementSelect) {
           this.callbacks.onElementSelect(null, null);
@@ -110,10 +132,14 @@ export class EditorInteractionController {
       // 新規文字または施設スタンプの直接配置
       if (this.state.mode === "text" || this.state.mode === "poi") {
         const pt = this.getSvgPoint(e, svgEl);
-        const pxPerMm = 10.0;
-        const wPx = this.state.widthMm * pxPerMm;
-        const hPx = this.state.heightMm * pxPerMm;
-        const [lon, lat] = GeoUtil.svgToGeo(pt.x, pt.y, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+        const { isPermit, marginPx, curW, curH, curWMm, curHMm, effRadius } = this.getPlotMetrics();
+        let clickX = pt.x;
+        let clickY = pt.y;
+        if (isPermit) {
+          clickX -= marginPx;
+          clickY -= marginPx;
+        }
+        const [lon, lat] = GeoUtil.svgToGeo(clickX, clickY, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
 
         if (this.callbacks.onCanvasClickAdd) {
           this.callbacks.onCanvasClickAdd(lat, lon, this.state.mode);
@@ -140,7 +166,6 @@ export class EditorInteractionController {
       const newX = this.state.elementSvgStart.x + dx;
       const newY = this.state.elementSvgStart.y + dy;
 
-      // 回転属性・スケール属性の維持
       const origTransform = this.state.dragSvgTarget.getAttribute("transform") || "";
       const rotMatch = /rotate\([^)]+\)/.exec(origTransform);
       const rotStr = rotMatch ? ` ${rotMatch[0]}` : "";
@@ -160,9 +185,7 @@ export class EditorInteractionController {
         if (match) {
           const finalX = parseFloat(match[1]);
           const finalY = parseFloat(match[2]);
-          const pxPerMm = 10.0;
-          const wPx = this.state.widthMm * pxPerMm;
-          const hPx = this.state.heightMm * pxPerMm;
+          const { curW, curH, curWMm, curHMm, effRadius } = this.getPlotMetrics();
 
           const elId = target.id || target.getAttribute("data-id");
           const elType = target.getAttribute("data-type");
@@ -175,26 +198,28 @@ export class EditorInteractionController {
             this.state.compass.y = finalY;
             if (this.callbacks.onShowToast) this.callbacks.onShowToast("方位記号の位置を更新しました");
 
-          // 1. 目的地ピン本体
+          // 1. 目的地 / 申請地 ピン記号本体
           } else if (elId === "dest_pin" || elType === "dest-icon") {
-            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
             this.state.dest.lat = newLat;
             this.state.dest.lon = newLon;
-            if (this.callbacks.onShowToast) this.callbacks.onShowToast(`「${this.state.dest.name}」の位置を更新しました`);
+            const destTitle = this.state.appMode === "permit" ? "申請地記号" : `「${this.state.dest.name}」`;
+            if (this.callbacks.onShowToast) this.callbacks.onShowToast(`${destTitle}の位置を更新しました`);
 
-          // 2. 目的地「現地」プレート
+          // 2. 目的地 / 申請地 テキストプレート
           } else if (elId === "dest_label" || elType === "dest-label") {
-            const [destSvgX, destSvgY] = GeoUtil.geoToSvg(this.state.dest.lon, this.state.dest.lat, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+            const [destSvgX, destSvgY] = GeoUtil.geoToSvg(this.state.dest.lon, this.state.dest.lat, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
             this.state.dest.labelOffsetX = finalX - destSvgX;
             this.state.dest.labelOffsetY = finalY - destSvgY;
-            if (this.callbacks.onShowToast) this.callbacks.onShowToast(`「${this.state.dest.name}」プレートの位置を調整しました`);
+            const destTitle = this.state.appMode === "permit" ? "申請地プレート" : `「${this.state.dest.name}」プレート`;
+            if (this.callbacks.onShowToast) this.callbacks.onShowToast(`${destTitle}の位置を調整しました`);
 
-          // 3. 施設ラベル (交差点名・駅名・スーパー名等) ★重要: 型不一致を確実に解消
+          // 3. 施設ラベル (交差点名・駅名・スーパー名等)
           } else if (elType === "landmark-label") {
             const parentId = target.getAttribute("data-parent-id");
             const landmark = this.state.findLandmark(parentId);
             if (landmark) {
-              const [iconSvgX, iconSvgY] = GeoUtil.geoToSvg(landmark.lon, landmark.lat, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+              const [iconSvgX, iconSvgY] = GeoUtil.geoToSvg(landmark.lon, landmark.lat, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
               landmark.labelOffsetX = finalX - iconSvgX;
               landmark.labelOffsetY = finalY - iconSvgY;
               if (this.callbacks.onShowToast) this.callbacks.onShowToast(`「${landmark.name}」の文字位置を更新しました`);
@@ -203,7 +228,7 @@ export class EditorInteractionController {
           // 4. 施設アイコン
           } else if (elType === "landmark-icon") {
             const actualId = target.getAttribute("data-id") || elId.replace("icon_", "");
-            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
             const landmark = this.state.findLandmark(actualId);
             if (landmark) {
               landmark.lat = newLat;
@@ -213,7 +238,7 @@ export class EditorInteractionController {
 
           // 5. 自由テキスト・通称
           } else if (elType === "text") {
-            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+            const [newLon, newLat] = GeoUtil.svgToGeo(finalX, finalY, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
             const txt = this.state.findText(elId);
             if (txt) {
               txt.lat = newLat;
@@ -221,12 +246,12 @@ export class EditorInteractionController {
               if (this.callbacks.onShowToast) this.callbacks.onShowToast(`「${txt.text}」の位置を更新しました`);
             }
 
-          // 6. 自由テキストの引き出し線対象地点アンカー (両端ドラッグ)
+          // 6. 自由テキストの引き出し線対象地点アンカー
           } else if (elType === "text-anchor") {
             const parentId = target.getAttribute("data-parent-id");
             const txt = this.state.findText(parentId);
             if (txt) {
-              const [txtSvgX, txtSvgY] = GeoUtil.geoToSvg(txt.lon, txt.lat, wPx, hPx, this.state.frameCenter, this.state.effectiveRadiusM, this.state.widthMm, this.state.heightMm);
+              const [txtSvgX, txtSvgY] = GeoUtil.geoToSvg(txt.lon, txt.lat, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
               txt.leaderOffsetX = finalX - txtSvgX;
               txt.leaderOffsetY = finalY - txtSvgY;
               if (this.callbacks.onShowToast) this.callbacks.onShowToast("引き出し線の対象地点を更新しました");
@@ -261,14 +286,7 @@ export class EditorInteractionController {
           }
         }
       } else if (e.key === "Escape") {
-        if (this.callbacks.onElementSelect) {
-          this.callbacks.onElementSelect(null, null);
-        }
-      } else if (e.key === "v" || e.key === "V") {
-        // Vキーで選択ツールに切り替え
-        if (this.callbacks.onSetMode) {
-          this.callbacks.onSetMode("select");
-        }
+        if (this.callbacks.onCancelDrawing) this.callbacks.onCancelDrawing();
       }
     });
   }

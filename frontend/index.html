@@ -18,15 +18,15 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.11</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.12</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
     </div>
 
-    <!-- モード切り替えタブ (案内図 ⇄ 確認申請1/2500) -->
+    <!-- モード切り替えタブ (案内図 ⇄ 各種申請1/2500) -->
     <div class="mode-switch-group">
       <button id="btnModeAd" class="mode-tab active" title="不動産広告・チラシ・Web用案内図モード（なぞり描き・自由作図）">🏢 案内図</button>
-      <button id="btnModePermit" class="mode-tab" title="建築確認申請・見取図モード（1/2500国土地理院白図）">📑 確認申請 (1/2500)</button>
+      <button id="btnModePermit" class="mode-tab" title="建築確認申請・見取図モード（1/2500国土地理院白図）">📑 各種申請</button>
     </div>
 
     <!-- 検索 & 基本設定 -->
@@ -87,19 +87,26 @@
   <div class="sub-bar">
     <!-- 選択時またはツールに応じたコンテキストプロパティパネル -->
     <div id="inspectorPanel" class="inspector-panel">
-      <!-- 確認申請モード用 図面情報入力バー -->
+      <!-- 各種申請モード用 図面情報入力バー -->
       <div id="inspectorPermit" class="inspector-group" style="display:none; flex-wrap:nowrap; gap:6px;">
-        <span class="inspector-badge" style="background:#dc2626; color:#fff;">📑 確認申請</span>
+        <span class="inspector-badge" style="background:#dc2626; color:#fff;">📑 各種申請</span>
         <label class="inspector-field">図名:
-          <input type="text" id="permitTitle" value="付近見取図" style="width:72px; padding:2px 4px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+          <input type="text" id="permitTitle" value="付近見取図" style="width:68px; padding:2px 4px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
         </label>
         <div class="inspector-divider"></div>
         <label class="inspector-field">地名地番:
-          <input type="text" id="permitLotNumber" placeholder="例: 坂戸市大字西坂戸3丁目123番4" style="width:160px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+          <input type="text" id="permitLotNumber" placeholder="例: 坂戸市大字西坂戸3丁目123番4" style="width:145px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
         </label>
         <div class="inspector-divider"></div>
         <label class="inspector-field">住居表示:
-          <input type="text" id="permitAddress" placeholder="例: 坂戸市西坂戸3-5-12" style="width:130px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+          <input type="text" id="permitAddress" placeholder="例: 坂戸市西坂戸3-5-12" style="width:125px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+        </label>
+        <div class="inspector-divider"></div>
+        <label class="inspector-field">建築士番号:
+          <input type="text" id="permitArchitectNo" placeholder="一級 第123456号" style="width:105px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
+        </label>
+        <label class="inspector-field">氏名:
+          <input type="text" id="permitArchitectName" placeholder="設計者氏名" style="width:85px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
         </label>
         <div class="inspector-divider"></div>
         <label class="inspector-field">背景図:
@@ -120,9 +127,10 @@
         <div class="inspector-divider"></div>
         <label class="inspector-field">用紙:
           <select id="permitPaperSize" class="poi-select" style="padding:2px 4px; font-size:11px;">
-            <option value="A4_landscape">A4横 (297×210mm)</option>
-            <option value="A4_portrait">A4縦 (210×297mm)</option>
-            <option value="box_standard">申請書枠 (150×100mm)</option>
+            <option value="A4_landscape">A4横 (297×210mm・余白10mm)</option>
+            <option value="A4_portrait">A4縦 (210×297mm・余白10mm)</option>
+            <option value="B5_landscape">B5横 (257×182mm・余白10mm)</option>
+            <option value="B5_portrait">B5縦 (182×257mm・余白10mm)</option>
             <option value="custom">現在枠サイズ</option>
           </select>
         </label>
@@ -132,6 +140,7 @@
             <option value="bottom-right">右下</option>
             <option value="bottom-left">左下</option>
             <option value="top-right">右上</option>
+            <option value="none">非表示</option>
           </select>
         </label>
       </div>
@@ -316,29 +325,36 @@
         <span class="tool-name">目的地</span>
       </button>
 
-      <button class="tool-icon-btn" data-mode="major_road" title="大通り (太) - クリック連打で描画、ダブルクリックで完了">
+      <!-- 案内図専用ツール群 -->
+      <button class="tool-icon-btn tool-ad-only" data-mode="major_road" title="大通り (太) - クリック連打で描画、ダブルクリックで完了">
         <span class="tool-emoji">🛣️</span>
         <span class="tool-name">大通り</span>
       </button>
 
-      <button class="tool-icon-btn" data-mode="medium_road" title="一般道 (中) - クリック連打で描画、ダブルクリックで完了">
+      <button class="tool-icon-btn tool-ad-only" data-mode="medium_road" title="一般道 (中) - クリック連打で描画、ダブルクリックで完了">
         <span class="tool-emoji">🚗</span>
         <span class="tool-name">一般道</span>
       </button>
 
-      <button class="tool-icon-btn" data-mode="minor_road" title="細道 (小) - クリック連打で描画、ダブルクリックで完了">
+      <button class="tool-icon-btn tool-ad-only" data-mode="minor_road" title="細道 (小) - クリック連打で描画、ダブルクリックで完了">
         <span class="tool-emoji">🚶</span>
         <span class="tool-name">細道</span>
       </button>
 
-      <button class="tool-icon-btn" data-mode="railway" title="線路 - クリック連打で描画、ダブルクリックで完了">
+      <button class="tool-icon-btn tool-ad-only" data-mode="railway" title="線路 - クリック連打で描画、ダブルクリックで完了">
         <span class="tool-emoji">🛤️</span>
         <span class="tool-name">線路</span>
       </button>
 
-      <button class="tool-icon-btn" data-mode="route" title="経路 (赤点線) - クリック連打で描画、ダブルクリックで完了">
+      <button class="tool-icon-btn tool-ad-only" data-mode="route" title="経路 (赤点線) - クリック連打で描画、ダブルクリックで完了">
         <span class="tool-emoji">🔴</span>
         <span class="tool-name">経路</span>
+      </button>
+
+      <!-- 各種申請専用ツール群 -->
+      <button class="tool-icon-btn tool-permit-only" data-mode="lot" id="btnToolLot" title="区画割（敷地）- クリック連打で敷地を描画、ダブルクリックで確定。角から何件目を表現" style="display:none;">
+        <span class="tool-emoji">📐</span>
+        <span class="tool-name">区画</span>
       </button>
 
       <div class="side-divider"></div>
@@ -471,6 +487,18 @@
               <button type="button" class="btn-micro modal-color-preset" data-color="#1e293b" style="background:#f1f5f9; color:#0f172a; border-color:#cbd5e1;">濃紺/黒</button>
               <button type="button" class="btn-micro modal-color-preset" data-color="#ea580c" style="background:#ffedd5; color:#c2410c; border-color:#fdba74;">オレンジ</button>
             </div>
+          </div>
+        </div>
+
+        <!-- 区画設定 (区画選択時のみ表示) -->
+        <div class="modal-form-group modal-box-highlight" id="modalLotGroup" style="display:none; background:#fef2f2; border-color:#fecaca;">
+          <label class="check-label" style="font-weight:bold; font-size:13.5px; color:#b91c1c;">
+            <input type="checkbox" id="modalLotIsSiteCheck">
+            <span>この区画を「申請地」に指定する（赤枠・薄赤塗りつぶし＋◎マーク）</span>
+          </label>
+          <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+            <label style="font-size:12px; font-weight:bold; color:#475569;">号地・ラベル:</label>
+            <input type="text" id="modalLotLabel" placeholder="例: 1号地, A区画, 申請地" style="padding:4px 8px; font-size:12px; border:1px solid #cbd5e1; border-radius:4px; width:160px;">
           </div>
         </div>
 

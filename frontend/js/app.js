@@ -25,11 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnModeAd = document.getElementById("btnModeAd");
   const btnModePermit = document.getElementById("btnModePermit");
 
-  // 確認申請インスペクター要素
+  // 各種申請インスペクター要素
   const inspectorPermit = document.getElementById("inspectorPermit");
   const permitTitle = document.getElementById("permitTitle");
   const permitLotNumber = document.getElementById("permitLotNumber");
   const permitAddress = document.getElementById("permitAddress");
+  const permitArchitectNo = document.getElementById("permitArchitectNo");
+  const permitArchitectName = document.getElementById("permitArchitectName");
   const permitBaseMap = document.getElementById("permitBaseMap");
   const permitScale = document.getElementById("permitScale");
   const permitPaperSize = document.getElementById("permitPaperSize");
@@ -100,6 +102,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalPlateBgGroup = document.getElementById("modalPlateBgGroup");
   const modalPlateBgColor = document.getElementById("modalPlateBgColor");
   const modalLeaderLineCheck = document.getElementById("modalLeaderLineCheck");
+  const modalLotGroup = document.getElementById("modalLotGroup");
+  const modalLotIsSiteCheck = document.getElementById("modalLotIsSiteCheck");
+  const modalLotLabel = document.getElementById("modalLotLabel");
   const btnModalClose = document.getElementById("btnModalClose");
   const btnModalOk = document.getElementById("btnModalOk");
   const btnModalDelete = document.getElementById("btnModalDelete");
@@ -168,8 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (id) {
         showToast("要素を選択しました（プロパティ設定やDeleteキーで削除可能）");
         const sel = state.getSelectedElementData();
-        // テキストやラベル、目的地、施設がクリック選択された場合、プロパティモーダルを直接表示
-        if (sel && ["text", "landmark", "dest"].includes(sel.type)) {
+        // テキストやラベル、目的地、施設、区画がクリック選択された場合、プロパティモーダルを表示
+        if (sel && ["text", "landmark", "dest", "lot"].includes(sel.type)) {
           openPropertyModal(sel);
         }
       }
@@ -186,11 +191,17 @@ document.addEventListener("DOMContentLoaded", () => {
       state.selectedId = id;
       state.selectedType = type;
       const sel = state.getSelectedElementData();
-      if (sel && ["dest", "landmark", "text"].includes(sel.type)) {
+      if (sel && ["dest", "landmark", "text", "lot"].includes(sel.type)) {
         openPropertyModal(sel);
       } else {
         handleEditNameDialog(id, type);
       }
+    },
+    onEditLot: (id) => {
+      state.selectedId = id;
+      state.selectedType = "lot";
+      const sel = state.getSelectedElementData();
+      if (sel) openPropertyModal(sel);
     },
     onCanvasClickAdd: (lat, lon, mode) => {
       if (mode === "text") {
@@ -447,16 +458,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const isSig = (sel.type === "landmark" && (sel.data.icon_type === "signal" || sel.data.category === "signal"));
 
     if (sel.type === "dest") {
-      titleText = "目的地（ピン・プレート）設定";
-      badgeText = "目的地";
-      currentText = sel.data.name || "現地";
+      titleText = state.appMode === "permit" ? "申請地（◎記号・プレート）設定" : "目的地（ピン・プレート）設定";
+      badgeText = state.appMode === "permit" ? "申請地" : "目的地";
+      currentText = sel.data.name || (state.appMode === "permit" ? "申請地" : "現地");
       fontSize = sel.data.fontSize || 14;
       rotation = sel.data.rotation || 0;
       modalIconScaleGroup.style.display = "none";
       modalPlateBgGroup.style.display = "flex";
       modalPlateBgColor.value = sel.data.bgColor || "#d32f2f";
+      if (modalLotGroup) modalLotGroup.style.display = "none";
       btnModalClearText.style.display = "inline-flex";
       btnModalDelete.style.display = "none";
+    } else if (sel.type === "lot") {
+      titleText = "区画（敷地割）設定";
+      badgeText = "区画";
+      currentText = sel.data.label || "";
+      fontSize = 13;
+      rotation = 0;
+      if (modalLotGroup) {
+        modalLotGroup.style.display = "block";
+        if (modalLotIsSiteCheck) modalLotIsSiteCheck.checked = !!sel.data.isSite;
+        if (modalLotLabel) modalLotLabel.value = sel.data.label || "";
+      }
+      modalIconScaleGroup.style.display = "none";
+      modalPlateBgGroup.style.display = "none";
+      btnModalClearText.style.display = "none";
+      btnModalDelete.style.display = "inline-flex";
     } else if (sel.type === "landmark") {
       badgeText = isStn ? "駅" : isSig ? "信号機" : "施設";
       titleText = `${badgeText}（${sel.data.name || "名称未設定"}）設定`;
@@ -478,6 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modalPlateBgGroup.style.display = "none";
       }
 
+      if (modalLotGroup) modalLotGroup.style.display = "none";
       btnModalClearText.style.display = "inline-flex";
       btnModalDelete.style.display = "inline-flex";
     } else if (sel.type === "text") {
@@ -488,6 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
       rotation = sel.data.rotation || 0;
       modalIconScaleGroup.style.display = "none";
       modalPlateBgGroup.style.display = "none";
+      if (modalLotGroup) modalLotGroup.style.display = "none";
       btnModalClearText.style.display = "none";
       btnModalDelete.style.display = "inline-flex";
     } else {
@@ -556,9 +585,39 @@ document.addEventListener("DOMContentLoaded", () => {
       sel.data.text = val;
       inspectorName.value = val;
       mapTrace.syncDrawnLayers();
+    } else if (sel.type === "lot") {
+      sel.data.label = val;
+      if (modalLotLabel) modalLotLabel.value = val;
+      mapTrace.syncDrawnLayers();
     }
     renderSvg();
   });
+
+  if (modalLotIsSiteCheck) {
+    modalLotIsSiteCheck.addEventListener("change", () => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.isSite = modalLotIsSiteCheck.checked;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+        showToast(sel.data.isSite ? "区画を「申請地（赤枠・薄赤塗りつぶし）」に指定しました" : "区画を「一般区画」に設定しました");
+      }
+    });
+  }
+
+  if (modalLotLabel) {
+    modalLotLabel.addEventListener("input", () => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.label = modalLotLabel.value;
+        modalTextInput.value = modalLotLabel.value;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
 
   // モーダル内文字サイズスライダー
   modalFontSizeSlider.addEventListener("input", () => {
@@ -705,15 +764,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // 6. モード切り替え（左側スリム縦型ツールバー）
   const hints = {
     select: "💡 【選択ツール (V)】要素をクリックして選択・ドラッグ微調整できます（サイズ・回転・削除可能）",
-    dest: "💡 【目的地ピン】左の地図で物件の場所をクリックして配置（案内図上でピンと文字プレートを別々に移動可）",
+    dest: "💡 【目的地/申請地】左の地図で物件の場所をクリックして配置（記号と文字プレートを別々に移動可）",
+    lot: "💡 【区画割（敷地）】敷地の四隅をクリックして多角形を描き、ダブルクリックで確定。複数描いて角から何件目を表現できます",
     major_road: "💡 【大通り (太)】クリック連打で国道・幹線道路を描画、ダブルクリックで完了",
     medium_road: "💡 【一般道 (中)】クリック連打で主要道路・県道を描画、ダブルクリックで完了",
     minor_road: "💡 【細道 (小)】クリック連打で細道・生活道路を描画、ダブルクリックで完了",
-    railway: "💡 【線路】クリックで線路をつなぎ、ダブルクリックで完了（JR風枕木パターン）",
+    railway: "💡 【線路】クリックで線路をつなぎ、ダブルクリックで完了",
     route: "💡 【経路 (赤点線)】クリック連打でアクセス経路を描画、ダブルクリックで完了",
-    poi: "💡 【施設配置】置きたい場所をクリックして配置（右の完成図でアイコンと文字を別々にドラッグ移動可）",
-    text: "💡 【文字配置】置きたい場所をクリック（線路先の「至 坂戸駅」や道路通称「鉄砲道」など）",
-    delete: "💡 【削除ツール】削除したい施設・文字・道路・線路をクリックすると一撃で消去されます"
+    poi: "💡 【施設配置】置きたい場所をクリックして配置（記号と文字を別々にドラッグ移動可）",
+    text: "💡 【文字配置】置きたい場所をクリック（道路名や「至 坂戸駅」など）",
+    delete: "💡 【削除ツール】削除したい区画・施設・文字をクリックすると一撃で消去されます"
   };
 
   function setMode(newMode) {
@@ -865,6 +925,20 @@ document.addEventListener("DOMContentLoaded", () => {
       mapTrace.destMarker.setLatLng(e.latlng);
       renderSvg();
 
+    } else if (state.mode === "lot") {
+      state.drawingPoints.push([lat, lon]);
+      if (!state.activePolyline) {
+        state.activePolyline = L.polygon(state.drawingPoints, {
+          className: "active-drawing-line",
+          color: "#dc2626",
+          fillColor: "#ef4444",
+          fillOpacity: 0.25,
+          dashArray: "4, 4",
+          interactive: false
+        }).addTo(mapTrace.map);
+      } else {
+        state.activePolyline.setLatLngs(state.drawingPoints);
+      }
     } else if (["major_road", "medium_road", "minor_road", "railway", "route"].includes(state.mode)) {
       state.drawingPoints.push([lat, lon]);
 
@@ -899,7 +973,23 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function finishCurrentDrawing() {
-    if (state.drawingPoints.length >= 2) {
+    if (state.mode === "lot" && state.drawingPoints.length >= 3) {
+      state.saveToHistory();
+      const lotId = `lot_${Date.now()}`;
+      const pts = state.drawingPoints.map(p => ({ lat: p[0], lon: p[1] }));
+      const lotCount = (state.lots || []).length + 1;
+      const isFirst = (state.lots.length === 0);
+      state.lots.push({
+        id: lotId,
+        points: pts,
+        isSite: isFirst, // 最初の区画はデフォルトで申請地に
+        label: isFirst ? "申請地" : `${lotCount}号地`,
+        fillColor: "",
+        strokeColor: ""
+      });
+      showToast(`📐 区画「${isFirst ? '申請地' : lotCount + '号地'}」を作成しました（クリックで選択、ダブルクリックで申請地切り替え）`);
+      syncAll();
+    } else if (state.drawingPoints.length >= 2) {
       state.saveToHistory();
       if (["major_road", "medium_road", "minor_road"].includes(state.mode)) {
         const roadType = state.mode === "major_road" ? "major" : state.mode === "medium_road" ? "medium" : "minor";
@@ -988,37 +1078,62 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSvg();
   });
 
-  // モード切り替え関数 (案内図モード ⇄ 確認申請モード)
+  // モード切り替え関数 (案内図モード ⇄ 各種申請モード)
   function setAppMode(mode) {
-    state.appMode = mode;
+    if (state.appMode === mode) return;
+
+    // 1. state側の作図データ完全分離スワップ
+    state.switchAppMode(mode);
+
     if (btnModeAd) btnModeAd.classList.toggle("active", mode === "ad");
     if (btnModePermit) {
       btnModePermit.classList.toggle("permit-active", mode === "permit");
       btnModePermit.classList.toggle("active", mode === "permit");
     }
 
+    // 2. ツールバーの表示切り替え（案内図専用ツール vs 各種申請専用ツール）
+    document.querySelectorAll(".tool-ad-only").forEach(el => {
+      el.style.display = (mode === "ad") ? "flex" : "none";
+    });
+    document.querySelectorAll(".tool-permit-only").forEach(el => {
+      el.style.display = (mode === "permit") ? "flex" : "none";
+    });
+
     if (mode === "permit") {
       if (inspectorPermit) inspectorPermit.style.display = "flex";
-      // 申請モード時はデフォルトで 1/2500 の厳密スケールを反映
       const scale = (state.permitInfo && state.permitInfo.scale) || 2500;
-      // 用紙が案内図用の小さめのサイズなら、標準A4横(297×210mm)を適用
-      if (state.widthMm < 150) {
-        state.widthMm = 297;
-        state.heightMm = 210;
-        inputWidthMm.value = state.widthMm;
-        inputHeightMm.value = state.heightMm;
-        if (permitPaperSize) permitPaperSize.value = "A4_landscape";
-      }
-      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(scale, state.widthMm);
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${scale})`;
-      mapTrace.updateFramingRectangle();
-      showToast("📑 【確認申請モード】1/2500 国土地理院白図・見取図モードに切り替えました");
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(scale, state.widthMm, 10);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${scale} 余白10mm)`;
+      syncPermitUI();
+      showToast("📑 【各種申請モード】1/2500 国土地理院白図・見取図モードに切り替えました");
     } else {
       if (inspectorPermit) inspectorPermit.style.display = "none";
       if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
+      if (inputWidthMm) inputWidthMm.value = state.widthMm;
+      if (inputHeightMm) inputHeightMm.value = state.heightMm;
+      if (inputDestName) inputDestName.value = state.dest.name || "現地";
       showToast("🏢 【案内図モード】チラシ・Web用案内図モードに切り替えました");
     }
+
+    setMode("select");
     syncAll();
+  }
+
+  function syncPermitUI() {
+    const info = state.permitInfo || {};
+    if (permitTitle) permitTitle.value = info.title || "付近見取図";
+    if (permitLotNumber) permitLotNumber.value = info.lotNumber || "";
+    if (permitAddress) permitAddress.value = info.address || "";
+    if (permitArchitectNo) permitArchitectNo.value = info.architectNo || "";
+    if (permitArchitectName) permitArchitectName.value = info.architectName || "";
+    if (permitBaseMap) permitBaseMap.value = info.baseMapType || "pale";
+    if (permitScale) permitScale.value = String(info.scale || 2500);
+    if (permitPaperSize) permitPaperSize.value = info.paperSize || "A4_landscape";
+    if (permitBoxPosition) permitBoxPosition.value = info.boxPosition || "bottom-right";
+
+    if (inputWidthMm) inputWidthMm.value = state.widthMm;
+    if (inputHeightMm) inputHeightMm.value = state.heightMm;
+    if (inputDestName) inputDestName.value = state.dest.name || "申請地";
   }
 
   if (btnModeAd) {
@@ -1028,7 +1143,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnModePermit.addEventListener("click", () => setAppMode("permit"));
   }
 
-  // 確認申請インスペクターのイベントリスナー
+  // 各種申請インスペクターのイベントリスナー
   if (permitTitle) {
     permitTitle.addEventListener("input", (e) => {
       state.saveToHistory();
@@ -1050,6 +1165,20 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSvg();
     });
   }
+  if (permitArchitectNo) {
+    permitArchitectNo.addEventListener("input", (e) => {
+      state.saveToHistory();
+      state.permitInfo.architectNo = e.target.value;
+      renderSvg();
+    });
+  }
+  if (permitArchitectName) {
+    permitArchitectName.addEventListener("input", (e) => {
+      state.saveToHistory();
+      state.permitInfo.architectName = e.target.value;
+      renderSvg();
+    });
+  }
   if (permitBaseMap) {
     permitBaseMap.addEventListener("change", (e) => {
       state.saveToHistory();
@@ -1063,8 +1192,8 @@ document.addEventListener("DOMContentLoaded", () => {
       state.saveToHistory();
       const s = parseInt(e.target.value) || 2500;
       state.permitInfo.scale = s;
-      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm);
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm, 10);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
       mapTrace.updateFramingRectangle();
       renderSvg();
       showToast(`縮尺を「1/${s.toLocaleString()}」に設定しました`);
@@ -1081,18 +1210,21 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (val === "A4_portrait") {
         state.widthMm = 210;
         state.heightMm = 297;
-      } else if (val === "box_standard") {
-        state.widthMm = 150;
-        state.heightMm = 100;
+      } else if (val === "B5_landscape") {
+        state.widthMm = 257;
+        state.heightMm = 182;
+      } else if (val === "B5_portrait") {
+        state.widthMm = 182;
+        state.heightMm = 257;
       }
-      inputWidthMm.value = state.widthMm;
-      inputHeightMm.value = state.heightMm;
+      if (inputWidthMm) inputWidthMm.value = state.widthMm;
+      if (inputHeightMm) inputHeightMm.value = state.heightMm;
       const s = (state.permitInfo && state.permitInfo.scale) || 2500;
-      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm);
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+      state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm, 10);
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
       mapTrace.updateFramingRectangle();
       renderSvg();
-      showToast(`用紙枠を「${e.target.options[e.target.selectedIndex].text}」に変更しました`);
+      showToast(`用紙を「${e.target.options[e.target.selectedIndex].text}」に変更しました`);
     });
   }
   if (permitBoxPosition) {
@@ -1100,6 +1232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.saveToHistory();
       state.permitInfo.boxPosition = e.target.value;
       renderSvg();
+      showToast(`表題欄を「${e.target.options[e.target.selectedIndex].text}」に配置しました`);
     });
   }
 
@@ -1378,6 +1511,8 @@ document.addEventListener("DOMContentLoaded", () => {
       title: "付近見取図",
       lotNumber: "埼玉県坂戸市森戸字向山123番4",
       address: "埼玉県坂戸市森戸3-5-12",
+      architectNo: "一級建築士 第123456号",
+      architectName: "住ま居る 太郎",
       scale: 2500,
       baseMapType: "pale",
       paperSize: "A4_landscape",
@@ -1385,7 +1520,45 @@ document.addEventListener("DOMContentLoaded", () => {
       siteSymbol: "double_circle",
       applicant: "住ま居る 設計部"
     };
-    state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(2500, 297);
+    state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(2500, 297, 10);
+
+    // デモ用サンプル区画割（街中の角から2件目を表現）
+    state.lots = [
+      {
+        id: "lot_demo_1",
+        label: "1号地",
+        isSite: false,
+        points: [
+          { lat: 35.93035, lon: 139.35925 },
+          { lat: 35.93035, lon: 139.35948 },
+          { lat: 35.93015, lon: 139.35948 },
+          { lat: 35.93015, lon: 139.35925 }
+        ]
+      },
+      {
+        id: "lot_demo_2",
+        label: "2号地(申請地)",
+        isSite: true,
+        points: [
+          { lat: 35.93035, lon: 139.35948 },
+          { lat: 35.93035, lon: 139.35970 },
+          { lat: 35.93015, lon: 139.35970 },
+          { lat: 35.93015, lon: 139.35948 }
+        ]
+      },
+      {
+        id: "lot_demo_3",
+        label: "3号地",
+        isSite: false,
+        points: [
+          { lat: 35.93035, lon: 139.35970 },
+          { lat: 35.93035, lon: 139.35992 },
+          { lat: 35.93015, lon: 139.35992 },
+          { lat: 35.93015, lon: 139.35970 }
+        ]
+      }
+    ];
+
     if (inputDestName) inputDestName.value = "申請地";
     if (inputWidthMm) inputWidthMm.value = 297;
     if (inputHeightMm) inputHeightMm.value = 210;
@@ -1395,6 +1568,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
       mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
       mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+      mapTrace.syncDrawnLayers();
     }, 200);
   } else if (demoScene && demoScene.startsWith("sumairu")) {
     state.clearAll();
@@ -1702,12 +1876,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (permitTitle) permitTitle.value = state.permitInfo.title || "付近見取図";
       if (permitLotNumber) permitLotNumber.value = state.permitInfo.lotNumber || "";
       if (permitAddress) permitAddress.value = state.permitInfo.address || "";
+      if (permitArchitectNo) permitArchitectNo.value = state.permitInfo.architectNo || "";
+      if (permitArchitectName) permitArchitectName.value = state.permitInfo.architectName || "";
       if (permitBaseMap) permitBaseMap.value = state.permitInfo.baseMapType || "pale";
       if (permitScale) permitScale.value = state.permitInfo.scale || 2500;
       if (permitPaperSize) permitPaperSize.value = state.permitInfo.paperSize || "A4_landscape";
       if (permitBoxPosition) permitBoxPosition.value = state.permitInfo.boxPosition || "bottom-right";
       const s = (state.permitInfo && state.permitInfo.scale) || 2500;
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s})`;
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
     } else {
       if (btnModeAd) btnModeAd.classList.add("active");
       if (btnModePermit) {

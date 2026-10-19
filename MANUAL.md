@@ -126,7 +126,7 @@ Googleマップで道路に沿ってポチポチと点を打って距離を測�
 
 ## バージョン管理・デプロイ運用規定
 
-- **現在のバージョン**: **`v0.1.13`** (`frontend/js/version.js` および `js/version.js` にて一元管理)
+- **現在のバージョン**: **`v0.1.14`** (`frontend/js/version.js` および `js/version.js` にて一元管理)
 - **厳守ルール**:
   - 詳細は [DEPLOY_RULES.md](DEPLOY_RULES.md) を参照。
   - いかなる些細な修正でも末尾のバージョン番号を +1 します。

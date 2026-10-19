@@ -124,7 +124,9 @@ export class SvgBuilder {
   static renderBackgroundTiles(state, wPx, hPx, widthMm, heightMm, effRadius) {
     const info = state.permitInfo || {};
     const baseType = info.baseMapType || "pale";
-    const zoom = (baseType === "blank") ? 14 : 16;
+    // ユーザー指定のズーム詳細度 (15:文字大, 16:標準, 17:詳細・文字小[標準推奨], 18:超精細)
+    let defaultZoom = (baseType === "blank") ? 14 : 17;
+    const zoom = info.tileZoom ? parseInt(info.tileZoom, 10) : defaultZoom;
     const ext = (baseType === "seamlessphoto") ? "jpg" : "png";
 
     // キャンバス四隅の緯度経度
@@ -177,9 +179,19 @@ export class SvgBuilder {
 
       const isSelected = (String(state.selectedId) === String(lot.id) && state.selectedType === "lot");
       const isSite = !!lot.isSite;
-      const strokeCol = isSite ? "#dc2626" : (lot.strokeColor || "#475569");
-      const strokeWidth = isSite ? 3.0 : 1.8;
-      const fillCol = isSite ? (lot.fillColor || "rgba(220, 38, 38, 0.28)") : (lot.fillColor || "rgba(255, 255, 255, 0.75)");
+
+      // 塗りつぶしの有無・色・不透明度
+      const hasFill = (lot.hasFill !== false);
+      const fillOpacity = lot.fillOpacity !== undefined ? lot.fillOpacity : (isSite ? 0.35 : 0.25);
+      const baseFillCol = lot.fillColor || (isSite ? "#ef4444" : "#3b82f6");
+      const fillAttr = hasFill ? `fill="${baseFillCol}" fill-opacity="${fillOpacity}"` : `fill="none"`;
+
+      // 線の有無・色・太さ・線種
+      const hasStroke = (lot.hasStroke !== false);
+      const strokeCol = lot.strokeColor || (isSite ? "#dc2626" : "#2563eb");
+      const strokeWidth = lot.strokeWidth !== undefined ? lot.strokeWidth : (isSite ? 4.0 : 2.5);
+      const strokeDash = lot.strokeDash === "dashed" ? 'stroke-dasharray="8,5"' : '';
+      const strokeAttr = hasStroke ? `stroke="${strokeCol}" stroke-width="${strokeWidth}" ${strokeDash}` : `stroke="none"`;
 
       // 重心計算 (ラベル配置用)
       let cx = 0, cy = 0;
@@ -192,9 +204,9 @@ export class SvgBuilder {
       cy /= lot.points.length;
 
       svg += `
-        <g id="${lot.id}" data-type="lot" data-id="${lot.id}" class="draggable lot-polygon-el ${isSelected ? 'is-selected' : ''}" title="🖱️ 区画: クリックで選択 / ダブルクリックで申請地・設定変更">
-          <polygon points="${pts}" fill="${fillCol}" stroke="${strokeCol}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-          ${isSelected ? `<polygon points="${pts}" fill="none" stroke="#2563eb" stroke-width="${strokeWidth + 2.5}" stroke-dasharray="6,3" opacity="0.8"/>` : ''}
+        <g id="${lot.id}" data-type="lot" data-id="${lot.id}" class="draggable lot-polygon-el ${isSelected ? 'is-selected' : ''}" title="🖱️ 敷地・図形: クリックで選択 / プロパティ編集">
+          <polygon points="${pts}" ${fillAttr} ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/>
+          ${isSelected ? `<polygon points="${pts}" fill="none" stroke="#2563eb" stroke-width="${Math.max(strokeWidth + 3, 5)}" stroke-dasharray="6,4" opacity="0.9"/>` : ''}
           ${isSite ? `
             <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="#ffffff" stroke="#dc2626" stroke-width="2.2" pointer-events="none"/>
             <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="#dc2626" pointer-events="none"/>
@@ -226,81 +238,85 @@ export class SvgBuilder {
     const applicant = info.applicant || "";
 
     const hasArchitect = (architectNo || architectName);
-    const boxW = 410;
-    let boxH = 30 + 32 + 32 + 28;
-    if (hasArchitect) boxH += 30;
-    if (applicant) boxH += 28;
+    // 印刷・高解像度出力時にハッキリ読める実務スケールへ拡大 (幅720px = 72mm)
+    const boxW = 720;
+    const headerH = 46;
+    const rowH = 48;
+    const labelW = 130;
+    let boxH = headerH + rowH * 2 + 44;
+    if (hasArchitect) boxH += 46;
+    if (applicant) boxH += 42;
 
     const pos = info.boxPosition || "bottom-right";
-    let bx = wPx - boxW - 20;
-    let by = hPx - boxH - 20;
+    let bx = wPx - boxW - 25;
+    let by = hPx - boxH - 25;
     if (pos === "bottom-left") {
-      bx = 20;
-      by = hPx - boxH - 20;
+      bx = 25;
+      by = hPx - boxH - 25;
     } else if (pos === "top-right") {
-      bx = wPx - boxW - 20;
-      by = 20;
+      bx = wPx - boxW - 25;
+      by = 25;
     }
 
-    let curY = 30;
+    let curY = headerH;
     let rowsSvg = "";
 
-    // 項目1: 申請地 地名地番 (文字拡大: 14.5px 太字)
+    // 項目1: 申請地 地名地番 (大きく読みやすい22px太字)
     rowsSvg += `
-      <rect x="0" y="${curY}" width="80" height="32" fill="#f8fafc"/>
-      <text x="40" y="${curY + 21}" text-anchor="middle" font-size="11.5px" font-weight="bold" fill="#475569" class="map-text">地名地番</text>
-      <text x="92" y="${curY + 21}" font-size="14.5px" font-weight="bold" fill="#0f172a" class="map-text">${lotNumber}</text>
-      <line x1="0" y1="${curY + 32}" x2="${boxW}" y2="${curY + 32}" stroke="#e2e8f0" stroke-width="1"/>
+      <rect x="0" y="${curY}" width="${labelW}" height="${rowH}" fill="#f8fafc"/>
+      <text x="${labelW / 2}" y="${curY + 31}" text-anchor="middle" font-size="17px" font-weight="bold" fill="#334155" class="map-text">地名地番</text>
+      <text x="${labelW + 16}" y="${curY + 32}" font-size="22px" font-weight="bold" fill="#0f172a" class="map-text">${lotNumber}</text>
+      <line x1="0" y1="${curY + rowH}" x2="${boxW}" y2="${curY + rowH}" stroke="#cbd5e1" stroke-width="1.5"/>
     `;
-    curY += 32;
+    curY += rowH;
 
-    // 項目2: 住居表示 (文字拡大: 14.5px 太字)
+    // 項目2: 住居表示
     rowsSvg += `
-      <rect x="0" y="${curY}" width="80" height="32" fill="#f8fafc"/>
-      <text x="40" y="${curY + 21}" text-anchor="middle" font-size="11.5px" font-weight="bold" fill="#475569" class="map-text">住居表示</text>
-      <text x="92" y="${curY + 21}" font-size="14.5px" font-weight="bold" fill="#0f172a" class="map-text">${address}</text>
-      <line x1="0" y1="${curY + 32}" x2="${boxW}" y2="${curY + 32}" stroke="#e2e8f0" stroke-width="1"/>
+      <rect x="0" y="${curY}" width="${labelW}" height="${rowH}" fill="#f8fafc"/>
+      <text x="${labelW / 2}" y="${curY + 31}" text-anchor="middle" font-size="17px" font-weight="bold" fill="#334155" class="map-text">住居表示</text>
+      <text x="${labelW + 16}" y="${curY + 32}" font-size="22px" font-weight="bold" fill="#0f172a" class="map-text">${address}</text>
+      <line x1="0" y1="${curY + rowH}" x2="${boxW}" y2="${curY + rowH}" stroke="#cbd5e1" stroke-width="1.5"/>
     `;
-    curY += 32;
+    curY += rowH;
 
     // 項目3: 建築士情報
     if (hasArchitect) {
       const archText = [architectNo, architectName].filter(Boolean).join("　");
       rowsSvg += `
-        <rect x="0" y="${curY}" width="80" height="30" fill="#f8fafc"/>
-        <text x="40" y="${curY + 20}" text-anchor="middle" font-size="11px" font-weight="bold" fill="#475569" class="map-text">設 計 者</text>
-        <text x="92" y="${curY + 20}" font-size="13px" font-weight="600" fill="#0f172a" class="map-text">${archText}</text>
-        <line x1="0" y1="${curY + 30}" x2="${boxW}" y2="${curY + 30}" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="0" y="${curY}" width="${labelW}" height="46" fill="#f8fafc"/>
+        <text x="${labelW / 2}" y="${curY + 30}" text-anchor="middle" font-size="16px" font-weight="bold" fill="#334155" class="map-text">設 計 者</text>
+        <text x="${labelW + 16}" y="${curY + 31}" font-size="20px" font-weight="600" fill="#0f172a" class="map-text">${archText}</text>
+        <line x1="0" y1="${curY + 46}" x2="${boxW}" y2="${curY + 46}" stroke="#cbd5e1" stroke-width="1.5"/>
       `;
-      curY += 30;
+      curY += 46;
     }
 
     // 項目4: 縮尺 & 作成日
     rowsSvg += `
-      <rect x="0" y="${curY}" width="80" height="28" fill="#f8fafc" rx="${applicant ? '' : '0 0 0 5'}"/>
-      <text x="40" y="${curY + 19}" text-anchor="middle" font-size="11px" font-weight="bold" fill="#475569" class="map-text">縮　　尺</text>
-      <text x="92" y="${curY + 19}" font-size="13.5px" font-weight="bold" fill="#dc2626" class="map-text">${scaleText}</text>
-      <text x="260" y="${curY + 19}" font-size="11px" fill="#64748b" class="map-text">作成日: ${dateText}</text>
+      <rect x="0" y="${curY}" width="${labelW}" height="44" fill="#f8fafc" rx="${applicant ? '' : '0 0 0 6'}"/>
+      <text x="${labelW / 2}" y="${curY + 29}" text-anchor="middle" font-size="16px" font-weight="bold" fill="#334155" class="map-text">縮　　尺</text>
+      <text x="${labelW + 16}" y="${curY + 30}" font-size="21px" font-weight="bold" fill="#dc2626" class="map-text">${scaleText}</text>
+      <text x="${boxW - 200}" y="${curY + 29}" font-size="16px" font-weight="500" fill="#64748b" class="map-text">作成日: ${dateText}</text>
     `;
-    curY += 28;
+    curY += 44;
 
     // 項目5: 申請者 (任意)
     if (applicant) {
       rowsSvg += `
-        <line x1="0" y1="${curY}" x2="${boxW}" y2="${curY}" stroke="#e2e8f0" stroke-width="1"/>
-        <rect x="0" y="${curY}" width="80" height="28" fill="#f8fafc" rx="0 0 0 5"/>
-        <text x="40" y="${curY + 19}" text-anchor="middle" font-size="11px" font-weight="bold" fill="#475569" class="map-text">申 請 者</text>
-        <text x="92" y="${curY + 19}" font-size="12px" fill="#0f172a" class="map-text">${applicant}</text>
+        <line x1="0" y1="${curY}" x2="${boxW}" y2="${curY}" stroke="#cbd5e1" stroke-width="1.5"/>
+        <rect x="0" y="${curY}" width="${labelW}" height="42" fill="#f8fafc" rx="0 0 0 6"/>
+        <text x="${labelW / 2}" y="${curY + 28}" text-anchor="middle" font-size="16px" font-weight="bold" fill="#334155" class="map-text">申 請 者</text>
+        <text x="${labelW + 16}" y="${curY + 29}" font-size="18px" fill="#0f172a" class="map-text">${applicant}</text>
       `;
     }
 
     return `
       <g id="permit_title_block" class="permit-title-block" transform="translate(${bx.toFixed(1)}, ${by.toFixed(1)})" pointer-events="all">
         <!-- 外枠・白下地 (シャドウ付き) -->
-        <rect width="${boxW}" height="${boxH}" fill="#ffffff" stroke="#1e293b" stroke-width="2.0" rx="5" filter="drop-shadow(0 3px 12px rgba(0,0,0,0.18))"/>
+        <rect width="${boxW}" height="${boxH}" fill="#ffffff" stroke="#0f172a" stroke-width="3.0" rx="6" filter="drop-shadow(0 4px 16px rgba(0,0,0,0.22))"/>
         <!-- 表題ヘッダーバー -->
-        <rect x="0" y="0" width="${boxW}" height="30" fill="#1e293b" rx="5 5 0 0"/>
-        <text x="${boxW / 2}" y="21" text-anchor="middle" font-size="15px" font-weight="bold" fill="#ffffff" letter-spacing="3px" class="map-text">${title}</text>
+        <rect x="0" y="0" width="${boxW}" height="${headerH}" fill="#0f172a" rx="6 6 0 0"/>
+        <text x="${boxW / 2}" y="32" text-anchor="middle" font-size="24px" font-weight="bold" fill="#ffffff" letter-spacing="4px" class="map-text">${title}</text>
         
         <!-- 垂直ラベル仕切り線 -->
         <line x1="80" y1="30" x2="80" y2="${boxH}" stroke="#e2e8f0" stroke-width="1"/>
@@ -662,13 +678,15 @@ export class SvgBuilder {
       const rot = t.rotation || 0;
       const rotAttr = rot !== 0 ? `rotate(${rot})` : '';
       const selectedClass = isSelected ? "is-selected" : "";
+      const textColor = t.color || "#0f172a";
+      const hasHalo = (t.hasHalo !== false);
       const multilineHalo = SvgBuilder.renderMultilineText(t.text, fSize, "middle");
       const multilineMain = SvgBuilder.renderMultilineText(t.text, fSize, "middle");
 
       svg += `
         <g id="${t.id}" data-type="text" data-id="${t.id}" class="draggable text-el ${selectedClass}" transform="translate(${x.toFixed(1)}, ${y.toFixed(1)}) ${rotAttr}" title="🖱️ ドラッグで移動 / クリックで選択">
-          <text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" class="map-text halo-stroke">${multilineHalo}</text>
-          <text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" fill="#1e293b" class="map-text">${multilineMain}</text>
+          ${hasHalo ? `<text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" class="map-text halo-stroke">${multilineHalo}</text>` : ''}
+          <text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" fill="${textColor}" class="map-text">${multilineMain}</text>
         </g>
       `;
     });

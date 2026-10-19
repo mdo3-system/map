@@ -318,12 +318,21 @@ export class MapTraceController {
         const isSite = !!lot.isSite;
         const isSelected = (this.state.selectedId === lot.id);
 
+        const hasFill = (lot.hasFill !== false);
+        const fillCol = hasFill ? (lot.fillColor || (isSite ? "#ef4444" : "#3b82f6")) : "transparent";
+        const fillOp = hasFill ? (lot.fillOpacity !== undefined ? lot.fillOpacity : (isSite ? 0.35 : 0.25)) : 0;
+
+        const hasStroke = (lot.hasStroke !== false);
+        const strokeCol = hasStroke ? (isSelected ? "#2563eb" : (lot.strokeColor || (isSite ? "#dc2626" : "#2563eb"))) : "transparent";
+        const strokeW = hasStroke ? (lot.strokeWidth !== undefined ? lot.strokeWidth : (isSite ? 4.0 : 2.5)) : 0;
+        const strokeDash = lot.strokeDash === "dashed" ? "6, 4" : null;
+
         const poly = L.polygon(latlngs, {
-          color: isSelected ? "#2563eb" : (isSite ? "#dc2626" : "#64748b"),
-          weight: isSelected ? 3.5 : (isSite ? 2.5 : 1.5),
-          fillColor: isSite ? "#ef4444" : "#f8fafc",
-          fillOpacity: isSite ? 0.35 : 0.2,
-          dashArray: isSite ? null : "4, 4",
+          color: strokeCol,
+          weight: strokeW,
+          fillColor: fillCol,
+          fillOpacity: fillOp,
+          dashArray: strokeDash,
           interactive: true
         }).addTo(this.drawnLayersGroup);
 

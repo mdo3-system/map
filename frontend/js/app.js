@@ -88,6 +88,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const compassScaleVal = document.getElementById("compassScaleVal");
   const btnResetCompassPos = document.getElementById("btnResetCompassPos");
 
+  // 敷地・多角形インスペクター要素
+  const inspectorLot = document.getElementById("inspectorLot");
+  const lotHasFill = document.getElementById("lotHasFill");
+  const lotFillColor = document.getElementById("lotFillColor");
+  const lotFillOpacity = document.getElementById("lotFillOpacity");
+  const lotFillOpacityVal = document.getElementById("lotFillOpacityVal");
+  const lotHasStroke = document.getElementById("lotHasStroke");
+  const lotStrokeColor = document.getElementById("lotStrokeColor");
+  const lotStrokeWidth = document.getElementById("lotStrokeWidth");
+  const lotStrokeWidthVal = document.getElementById("lotStrokeWidthVal");
+  const lotStrokeDash = document.getElementById("lotStrokeDash");
+  const btnLotToggleSite = document.getElementById("btnLotToggleSite");
+  const btnLotDelete = document.getElementById("btnLotDelete");
+
+  // 文字色 & 白フチ
+  const inspectorTextColorField = document.getElementById("inspectorTextColorField");
+  const inspectorTextColorDivider = document.getElementById("inspectorTextColorDivider");
+  const inspectorTextColor = document.getElementById("inspectorTextColor");
+  const inspectorHaloLabel = document.getElementById("inspectorHaloLabel");
+  const inspectorHaloDivider = document.getElementById("inspectorHaloDivider");
+  const inspectorHalo = document.getElementById("inspectorHalo");
+  const permitTileZoom = document.getElementById("permitTileZoom");
+
   // プロパティモーダル要素
   const elementPropertyModal = document.getElementById("elementPropertyModal");
   const modalElementBadge = document.getElementById("modalElementBadge");
@@ -225,6 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 一旦すべて非表示
     inspectorSelected.style.display = "none";
+    if (inspectorLot) inspectorLot.style.display = "none";
     inspectorCompass.style.display = "none";
     inspectorRail.style.display = "none";
     inspectorRoad.style.display = "none";
@@ -299,6 +323,45 @@ document.addEventListener("DOMContentLoaded", () => {
           inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
           inspectorLeaderLineLabel.style.display = "flex";
           btnInspectorDelete.style.display = "inline-flex";
+
+          // 文字色 & 白フチの表示と同期
+          if (inspectorTextColorField) {
+            inspectorTextColorField.style.display = "flex";
+            if (inspectorTextColorDivider) inspectorTextColorDivider.style.display = "block";
+            inspectorTextColor.value = sel.data.color || "#0f172a";
+          }
+          if (inspectorHaloLabel) {
+            inspectorHaloLabel.style.display = "flex";
+            if (inspectorHaloDivider) inspectorHaloDivider.style.display = "block";
+            inspectorHalo.checked = (sel.data.hasHalo !== false);
+          }
+        }
+      }
+
+      // 敷地・多角形が選択された場合
+      if (sel && sel.type === "lot" && inspectorLot) {
+        inspectorSelected.style.display = "none";
+        inspectorLot.style.display = "flex";
+        const lot = sel.data;
+        const isSite = !!lot.isSite;
+
+        if (lotHasFill) lotHasFill.checked = (lot.hasFill !== false);
+        if (lotFillColor) lotFillColor.value = lot.fillColor || (isSite ? "#ef4444" : "#3b82f6");
+        const op = lot.fillOpacity !== undefined ? lot.fillOpacity : (isSite ? 0.35 : 0.25);
+        if (lotFillOpacity) lotFillOpacity.value = op;
+        if (lotFillOpacityVal) lotFillOpacityVal.textContent = `${Math.round(op * 100)}%`;
+
+        if (lotHasStroke) lotHasStroke.checked = (lot.hasStroke !== false);
+        if (lotStrokeColor) lotStrokeColor.value = lot.strokeColor || (isSite ? "#dc2626" : "#2563eb");
+        const sw = lot.strokeWidth !== undefined ? lot.strokeWidth : (isSite ? 4.0 : 2.5);
+        if (lotStrokeWidth) lotStrokeWidth.value = sw;
+        if (lotStrokeWidthVal) lotStrokeWidthVal.textContent = String(sw);
+        if (lotStrokeDash) lotStrokeDash.value = (lot.strokeDash === "dashed") ? "dashed" : "solid";
+
+        if (btnLotToggleSite) {
+          btnLotToggleSite.textContent = isSite ? "◎ 申請地指定中 (解除)" : "◎ 申請地に指定";
+          btnLotToggleSite.style.background = isSite ? "#dc2626" : "#fef2f2";
+          btnLotToggleSite.style.color = isSite ? "#ffffff" : "#dc2626";
         }
       }
     } else {
@@ -972,6 +1035,143 @@ document.addEventListener("DOMContentLoaded", () => {
     finishCurrentDrawing();
   });
 
+  // 敷地・多角形プロパティ イベントリスナー
+  if (lotHasFill) {
+    lotHasFill.addEventListener("change", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.hasFill = e.target.checked;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (lotFillColor) {
+    lotFillColor.addEventListener("input", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.fillColor = e.target.value;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (lotFillOpacity) {
+    lotFillOpacity.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      if (lotFillOpacityVal) lotFillOpacityVal.textContent = `${Math.round(val * 100)}%`;
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        sel.data.fillOpacity = val;
+        renderSvg();
+      }
+    });
+  }
+  if (lotHasStroke) {
+    lotHasStroke.addEventListener("change", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.hasStroke = e.target.checked;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (lotStrokeColor) {
+    lotStrokeColor.addEventListener("input", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.strokeColor = e.target.value;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (lotStrokeWidth) {
+    lotStrokeWidth.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      if (lotStrokeWidthVal) lotStrokeWidthVal.textContent = String(val);
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        sel.data.strokeWidth = val;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (lotStrokeDash) {
+    lotStrokeDash.addEventListener("change", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.strokeDash = e.target.value;
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+      }
+    });
+  }
+  if (btnLotToggleSite) {
+    btnLotToggleSite.addEventListener("click", () => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        const nextSite = !sel.data.isSite;
+        if (nextSite) {
+          state.lots.forEach(l => l.isSite = false);
+        }
+        sel.data.isSite = nextSite;
+        updateInspectorPanel();
+        renderSvg();
+        mapTrace.syncDrawnLayers();
+        showToast(nextSite ? "◎ この区画を申請地に設定しました" : "申請地設定を解除しました");
+      }
+    });
+  }
+  if (btnLotDelete) {
+    btnLotDelete.addEventListener("click", () => {
+      if (state.selectedId && state.selectedType === "lot") {
+        handleDeleteElement(state.selectedId, "lot");
+      }
+    });
+  }
+
+  // 文字色 & 白フチの変更リスナー
+  if (inspectorTextColor) {
+    inspectorTextColor.addEventListener("input", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "text") {
+        state.saveToHistory();
+        sel.data.color = e.target.value;
+        renderSvg();
+      }
+    });
+  }
+  if (inspectorHalo) {
+    inspectorHalo.addEventListener("change", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "text") {
+        state.saveToHistory();
+        sel.data.hasHalo = e.target.checked;
+        renderSvg();
+      }
+    });
+  }
+
+  // 地図詳細度 (文字サイズ) の変更リスナー
+  if (permitTileZoom) {
+    permitTileZoom.addEventListener("change", (e) => {
+      state.saveToHistory();
+      if (!state.permitInfo) state.permitInfo = {};
+      state.permitInfo.tileZoom = e.target.value;
+      renderSvg();
+      showToast(`地図詳細度を ${e.target.options[e.target.selectedIndex].text} に変更しました`);
+    });
+  }
+
   function finishCurrentDrawing() {
     if (state.mode === "lot" && state.drawingPoints.length >= 3) {
       state.saveToHistory();
@@ -982,10 +1182,15 @@ document.addEventListener("DOMContentLoaded", () => {
       state.lots.push({
         id: lotId,
         points: pts,
-        isSite: isFirst, // 最初の区画はデフォルトで申請地に
+        isSite: isFirst,
         label: isFirst ? "申請地" : `${lotCount}号地`,
-        fillColor: "",
-        strokeColor: ""
+        hasFill: true,
+        fillColor: isFirst ? "#ef4444" : "#3b82f6",
+        fillOpacity: isFirst ? 0.35 : 0.25,
+        hasStroke: true,
+        strokeColor: isFirst ? "#dc2626" : "#2563eb",
+        strokeWidth: isFirst ? 4.0 : 2.5,
+        strokeDash: "solid"
       });
       showToast(`📐 区画「${isFirst ? '申請地' : lotCount + '号地'}」を作成しました（クリックで選択、ダブルクリックで申請地切り替え）`);
       syncAll();
@@ -1989,6 +2194,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (permitScale) permitScale.value = state.permitInfo.scale || 2500;
       if (permitPaperSize) permitPaperSize.value = state.permitInfo.paperSize || "A4_landscape";
       if (permitBoxPosition) permitBoxPosition.value = state.permitInfo.boxPosition || "bottom-right";
+    if (permitTileZoom) permitTileZoom.value = state.permitInfo.tileZoom || "17";
       const s = (state.permitInfo && state.permitInfo.scale) || 2500;
       if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
     } else {

@@ -9,6 +9,7 @@
   <script src="js/version.js"></script>
   <!-- Leaflet: 参照マップ用 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
@@ -18,7 +19,7 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.12</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.13</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
     </div>
@@ -147,6 +148,8 @@
             <option value="none">非表示</option>
           </select>
         </label>
+        <div class="inspector-divider"></div>
+        <button id="btnCenterToSite" class="btn btn-secondary" style="padding:2px 8px; font-size:11px; background:#f8fafc; color:#0f172a; border-color:#cbd5e1; font-weight:bold; white-space:nowrap;" title="左画面で見ている地図の中心に申請地記号（◎）と作図枠を瞬時に合わせます">📍 中心を申請地に指定</button>
       </div>
 
       <!-- 選択ツール時: 要素が選択されている時のプロパティ -->

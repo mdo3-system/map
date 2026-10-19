@@ -125,6 +125,7 @@ export class SvgBuilder {
     const info = state.permitInfo || {};
     const baseType = info.baseMapType || "pale";
     const zoom = (baseType === "blank") ? 14 : 16;
+    const ext = (baseType === "seamlessphoto") ? "jpg" : "png";
 
     // キャンバス四隅の緯度経度
     const [leftLon, topLat] = GeoUtil.svgToGeo(0, 0, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
@@ -153,7 +154,7 @@ export class SvgBuilder {
         const tileX = Math.min(x1, x2);
         const tileY = Math.min(y1, y2);
 
-        const tileUrl = `https://cyberjapandata.gsi.go.jp/xyz/${baseType}/${zoom}/${tx}/${ty}.png`;
+        const tileUrl = `https://cyberjapandata.gsi.go.jp/xyz/${baseType}/${zoom}/${tx}/${ty}.${ext}`;
         tileSvg += `<image href="${tileUrl}" x="${tileX.toFixed(1)}" y="${tileY.toFixed(1)}" width="${tileW.toFixed(1)}" height="${tileH.toFixed(1)}" preserveAspectRatio="none" crossorigin="anonymous"/>`;
       }
     }

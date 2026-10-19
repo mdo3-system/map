@@ -1116,6 +1116,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setMode("select");
+    // 左画面地図および作図枠マーカーを中心へ完全同期
+    if (mapTrace && mapTrace.map) {
+      mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon]);
+      mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
+      mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+      mapTrace.updateFramingRectangle();
+      mapTrace.updateDestPinIcon();
+    }
     syncAll();
   }
 
@@ -1319,9 +1327,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       state.dest.lat = lat;
       state.dest.lon = lon;
-      state.dest.name = (inputDestName ? inputDestName.value.trim() : "") || "現地";
+      state.dest.name = (state.appMode === "permit") ? "申請地" : ((inputDestName ? inputDestName.value.trim() : "") || "現地");
       state.frameCenter.lat = lat;
       state.frameCenter.lon = lon;
+
+      // 待機中の退避シーンも最新の検索座標に同期
+      if (state.adScene) {
+        state.adScene.dest.lat = lat;
+        state.adScene.dest.lon = lon;
+        state.adScene.frameCenter = { lat, lon };
+      }
+      if (state.permitScene) {
+        state.permitScene.dest.lat = lat;
+        state.permitScene.dest.lon = lon;
+        state.permitScene.frameCenter = { lat, lon };
+      }
       state.viewRadiusM = 450;
       state.effectiveRadiusM = 450;
 
@@ -1429,6 +1449,93 @@ document.addEventListener("DOMContentLoaded", () => {
     URL.revokeObjectURL(url);
     showToast("SVGファイルを出力しました");
   });
+
+  // PDF出力ボタンハンドラ (jsPDF 高精細ダイレクト保存 ＆ 印刷フォールバック)
+  const btnExportPdf = document.getElementById("btnExportPdf");
+  if (btnExportPdf) {
+    btnExportPdf.addEventListener("click", async () => {
+      showToast("📄 PDF出力を準備中...");
+      try {
+        const svgEl = svgContainer.querySelector("svg");
+        if (!svgEl) throw new Error("図面SVGが見つかりません");
+
+        if (window.jspdf && window.jspdf.jsPDF) {
+          const { jsPDF } = window.jspdf;
+          const isLandscape = state.widthMm >= state.heightMm;
+          const orientation = isLandscape ? "landscape" : "portrait";
+          const paperFormat = [state.widthMm, state.heightMm];
+
+          const doc = new jsPDF({
+            orientation: orientation,
+            unit: "mm",
+            format: paperFormat,
+            compress: true
+          });
+
+          const serializer = new XMLSerializer();
+          const svgString = serializer.serializeToString(svgEl);
+          const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+          const url = URL.createObjectURL(svgBlob);
+
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error("SVG画像の読み込みに失敗しました"));
+            img.src = url;
+          });
+
+          const scale = 3.5;
+          const canvas = document.createElement("canvas");
+          canvas.width = svgEl.viewBox.baseVal.width * scale;
+          canvas.height = svgEl.viewBox.baseVal.height * scale;
+          const ctx = canvas.getContext("2d");
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+
+          const imgData = canvas.toDataURL("image/jpeg", 0.95);
+          doc.addImage(imgData, "JPEG", 0, 0, state.widthMm, state.heightMm);
+
+          const fileTitle = state.appMode === "permit"
+            ? `付近見取図_${(state.permitInfo?.title || "申請図")}_${(state.permitInfo?.lotNumber || state.dest.name || "A4")}.pdf`
+            : `案内図_${state.dest.name || "物件"}.pdf`;
+
+          doc.save(fileTitle);
+          showToast(`📄 PDFファイル「${fileTitle}」を出力しました`);
+          return;
+        }
+
+        // jsPDF未読込時は印刷ダイアログを起動
+        window.print();
+      } catch (err) {
+        console.warn("Direct PDF export warning, falling back to window.print:", err);
+        window.print();
+      }
+    });
+  }
+
+  // 申請地を中心へ瞬時同期するアシストボタン
+  const btnCenterToSite = document.getElementById("btnCenterToSite");
+  if (btnCenterToSite) {
+    btnCenterToSite.addEventListener("click", () => {
+      const c = mapTrace.map.getCenter();
+      state.saveToHistory();
+      state.frameCenter.lat = c.lat;
+      state.frameCenter.lon = c.lng;
+      state.dest.lat = c.lat;
+      state.dest.lon = c.lng;
+      mapTrace.destMarker.setLatLng(c);
+      mapTrace.frameCenterMarker.setLatLng(c);
+      mapTrace.updateFramingRectangle();
+      mapTrace.updateDestPinIcon();
+      syncAll();
+      showToast("📍 現在の地図中心に申請地と作図枠を合わせました");
+    });
+  }
 
   btnExportPng.addEventListener("click", () => {
     const svgEl = svgContainer.querySelector("svg");

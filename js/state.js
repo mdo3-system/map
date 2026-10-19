@@ -193,6 +193,12 @@ export class AppState {
 
     this.appMode = newMode;
 
+    // 切り替え前の直近の座標（ユーザーが操作・検索した現在地）を保持して引き継ぐ
+    const prevDestLat = this.dest.lat;
+    const prevDestLon = this.dest.lon;
+    const prevCenterLat = this.frameCenter.lat;
+    const prevCenterLon = this.frameCenter.lon;
+
     // 2. 切り替え先モードのデータを復元
     if (newMode === "ad") {
       const s = this.adScene;
@@ -213,6 +219,14 @@ export class AppState {
         this.routes = s.routes || [];
         this.landmarks = s.landmarks || [];
         this.texts = s.texts || [];
+
+        // 直前の各種申請モードで別の場所へ移動していた場合はその座標を同期反映
+        if (prevDestLat && prevDestLon) {
+          this.dest.lat = prevDestLat;
+          this.dest.lon = prevDestLon;
+          this.frameCenter.lat = prevCenterLat;
+          this.frameCenter.lon = prevCenterLon;
+        }
       } else {
         // デフォルト初期値
         this.widthMm = 80;
@@ -223,6 +237,11 @@ export class AppState {
         this.routes = [];
         this.landmarks = [];
         this.texts = [];
+        if (prevDestLat && prevDestLon) {
+          this.dest.lat = prevDestLat;
+          this.dest.lon = prevDestLon;
+          this.frameCenter = { lat: prevCenterLat, lon: prevCenterLon };
+        }
       }
       this.lots = []; // 案内図モードでは区画データは表示しない
     } else if (newMode === "permit") {
@@ -242,6 +261,17 @@ export class AppState {
         this.lots = s.lots || [];
         this.landmarks = s.landmarks || [];
         this.texts = s.texts || [];
+
+        // 案内図モードで現在操作していた座標を最優先で引き継ぐ（大宮等過去データで上書きされるのを防ぐ）
+        if (prevDestLat && prevDestLon) {
+          this.dest.lat = prevDestLat;
+          this.dest.lon = prevDestLon;
+          this.frameCenter.lat = prevCenterLat;
+          this.frameCenter.lon = prevCenterLon;
+        }
+        if (!this.dest.name || this.dest.name === "現地") {
+          this.dest.name = "申請地";
+        }
       } else {
         // 各種申請の初期値 (A4横 297x210, 縮尺1/2500)
         this.widthMm = 297;
@@ -251,6 +281,12 @@ export class AppState {
         this.lots = [];
         this.landmarks = [];
         this.texts = [];
+        // 直前の案内図モードの座標をそのまま引き継ぐ
+        if (prevDestLat && prevDestLon) {
+          this.dest.lat = prevDestLat;
+          this.dest.lon = prevDestLon;
+          this.frameCenter = { lat: prevCenterLat, lon: prevCenterLon };
+        }
       }
       // 各種申請モードでは道路・線路・経路などの案内図用レイヤーは非表示（空）
       this.roads = [];

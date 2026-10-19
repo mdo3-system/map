@@ -54,6 +54,25 @@ export class MapTraceController {
       if (this.callbacks.onStateChange) this.callbacks.onStateChange();
     });
 
+    this.frameCenterMarker.on("dragend", (e) => {
+      const p = e.target.getLatLng();
+      if (this.state.appMode === "permit") {
+        this.map.panTo(p, { animate: true });
+      }
+    });
+
+    // 地図ドラッグ移動・ズーム時の中心連動 (特に各種申請モードのプレビュー同期)
+    this.map.on("moveend", () => {
+      if (this.state.appMode === "permit") {
+        const c = this.map.getCenter();
+        this.state.frameCenter.lat = c.lat;
+        this.state.frameCenter.lon = c.lng;
+        this.frameCenterMarker.setLatLng(c);
+        this.updateFramingRectangle();
+        if (this.callbacks.onStateChange) this.callbacks.onStateChange();
+      }
+    });
+
     // 目的地ピンマーカー
     this.destMarker = L.marker([state.dest.lat, state.dest.lon], {
       draggable: true,

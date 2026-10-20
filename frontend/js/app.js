@@ -1269,7 +1269,8 @@ document.addEventListener("DOMContentLoaded", () => {
       state.activePolyline = null;
     }
     updateDrawingActionBar();
-    showToast("作図を取り消しました");
+    setMode("select");
+    showToast("作図を取り消しました（選択モードに戻りました）");
   }
 
   if (btnFinishDrawing) btnFinishDrawing.addEventListener("click", () => finishCurrentDrawing());
@@ -1290,6 +1291,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function finishCurrentDrawing() {
+    let createdLotId = null;
     if (state.mode === "lot" && state.drawingPoints.length >= 3) {
       state.saveToHistory();
       const lotId = `lot_${Date.now()}`;
@@ -1309,8 +1311,20 @@ document.addEventListener("DOMContentLoaded", () => {
         strokeWidth: isFirst ? 4.0 : 2.5,
         strokeDash: "solid"
       });
-      showToast(`📐 区画「${isFirst ? '申請地' : lotCount + '号地'}」を作成しました（クリックで選択、ダブルクリックで申請地切り替え）`);
-      syncAll();
+
+      // 敷地を作図した場合は、既存の現地ピン・丸印を自動非表示にして二重表示を解消
+      if (state.appMode === "permit" || isFirst) {
+        state.dest.hidePin = true;
+        if (state.permitScene && state.permitScene.dest) {
+          state.permitScene.dest.hidePin = true;
+        }
+        if (checkPermitSiteMarker) {
+          checkPermitSiteMarker.checked = false;
+        }
+      }
+
+      createdLotId = lotId;
+      showToast(`📐 敷地「${isFirst ? '申請地' : lotCount + '号地'}」を作図しました（選択・編集モードに切り替えました）`);
     } else if (state.drawingPoints.length >= 2) {
       state.saveToHistory();
       if (["major_road", "medium_road", "minor_road"].includes(state.mode)) {
@@ -1335,7 +1349,6 @@ document.addEventListener("DOMContentLoaded", () => {
           points: [...state.drawingPoints]
         });
       }
-      syncAll();
     }
     state.drawingPoints = [];
     if (state.activePolyline) {
@@ -1343,6 +1356,15 @@ document.addEventListener("DOMContentLoaded", () => {
       state.activePolyline = null;
     }
     updateDrawingActionBar();
+
+    // 作図完了後は必ず選択モード（select）に切り替え！
+    setMode("select");
+    if (createdLotId) {
+      state.selectedId = createdLotId;
+      state.selectedType = "lot";
+      updateInspectorPanel();
+    }
+    syncAll();
   }
 
   // 9. 道路スタイル変更連動
@@ -1451,20 +1473,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function syncPermitUI() {
+    const isPermit = (state.appMode === "permit");
+    if (btnModeAd) btnModeAd.classList.toggle("active", !isPermit);
+    if (btnModePermit) {
+      btnModePermit.classList.toggle("permit-active", isPermit);
+      btnModePermit.classList.toggle("active", isPermit);
+    }
+    if (inspectorPermit) inspectorPermit.style.display = isPermit ? "flex" : "none";
+
     const info = state.permitInfo || {};
     if (permitTitle) permitTitle.value = info.title || "付近見取図";
     if (permitLotNumber) permitLotNumber.value = info.lotNumber || "";
     if (permitAddress) permitAddress.value = info.address || "";
     if (permitArchitectNo) permitArchitectNo.value = info.architectNo || "";
     if (permitArchitectName) permitArchitectName.value = info.architectName || "";
-    if (permitBaseMap) permitBaseMap.value = info.baseMapType || "pale";
+    if (permitBaseMap) permitBaseMap.value = info.baseMapType || "osm";
     if (permitScale) permitScale.value = String(info.scale || 2500);
     if (permitPaperSize) permitPaperSize.value = info.paperSize || "A4_landscape";
     if (permitBoxPosition) permitBoxPosition.value = info.boxPosition || "bottom-right";
+    if (permitTileZoom) permitTileZoom.value = info.tileZoom || "17";
+
+    if (checkPermitSiteMarker) {
+      checkPermitSiteMarker.checked = !(state.dest && state.dest.hidePin === true);
+    }
 
     if (inputWidthMm) inputWidthMm.value = state.widthMm;
     if (inputHeightMm) inputHeightMm.value = state.heightMm;
-    if (inputDestName) inputDestName.value = state.dest.name || "申請地";
+    if (inputDestName) inputDestName.value = state.dest.name !== undefined ? state.dest.name : (isPermit ? "申請地" : "現地");
+
+    if (isPermit) {
+      const s = info.scale || 2500;
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
+    } else {
+      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
+    }
   }
 
   if (btnModeAd) {
@@ -1568,6 +1610,7 @@ document.addEventListener("DOMContentLoaded", () => {
     permitPaperSize.addEventListener("change", (e) => {
       state.saveToHistory();
       const val = e.target.value;
+      if (!state.permitInfo) state.permitInfo = {};
       state.permitInfo.paperSize = val;
       if (val === "A4_landscape") {
         state.widthMm = 297;
@@ -1581,6 +1624,12 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (val === "B5_portrait") {
         state.widthMm = 182;
         state.heightMm = 257;
+      }
+      if (state.permitScene) {
+        state.permitScene.widthMm = state.widthMm;
+        state.permitScene.heightMm = state.heightMm;
+        if (!state.permitScene.permitInfo) state.permitScene.permitInfo = {};
+        state.permitScene.permitInfo.paperSize = val;
       }
       if (inputWidthMm) inputWidthMm.value = state.widthMm;
       if (inputHeightMm) inputHeightMm.value = state.heightMm;
@@ -2411,35 +2460,13 @@ document.addEventListener("DOMContentLoaded", () => {
     setMode("select");
   }
 
-  function syncPermitUI() {
-    if (state.appMode === "permit") {
-      if (btnModeAd) btnModeAd.classList.remove("active");
-      if (btnModePermit) {
-        btnModePermit.classList.add("permit-active");
-        btnModePermit.classList.add("active");
-      }
-      if (inspectorPermit) inspectorPermit.style.display = "flex";
-      if (permitTitle) permitTitle.value = state.permitInfo.title || "付近見取図";
-      if (permitLotNumber) permitLotNumber.value = state.permitInfo.lotNumber || "";
-      if (permitAddress) permitAddress.value = state.permitInfo.address || "";
-      if (permitArchitectNo) permitArchitectNo.value = state.permitInfo.architectNo || "";
-      if (permitArchitectName) permitArchitectName.value = state.permitInfo.architectName || "";
-      if (permitBaseMap) permitBaseMap.value = state.permitInfo.baseMapType || "pale";
-      if (permitScale) permitScale.value = state.permitInfo.scale || 2500;
-      if (permitPaperSize) permitPaperSize.value = state.permitInfo.paperSize || "A4_landscape";
-      if (permitBoxPosition) permitBoxPosition.value = state.permitInfo.boxPosition || "bottom-right";
-    if (permitTileZoom) permitTileZoom.value = state.permitInfo.tileZoom || "17";
-      const s = (state.permitInfo && state.permitInfo.scale) || 2500;
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm (1/${s} 余白10mm)`;
-    } else {
-      if (btnModeAd) btnModeAd.classList.add("active");
-      if (btnModePermit) {
-        btnModePermit.classList.remove("permit-active");
-        btnModePermit.classList.remove("active");
-      }
-      if (inspectorPermit) inspectorPermit.style.display = "none";
-      if (badgeScale) badgeScale.textContent = `${state.widthMm} × ${state.heightMm} mm`;
-    }
+  // 初期起動時のツールバー表示同期
+  if (state.appMode === "permit") {
+    document.querySelectorAll(".tool-ad-only").forEach(el => el.style.display = "none");
+    document.querySelectorAll(".tool-permit-only").forEach(el => el.style.display = "flex");
+  } else {
+    document.querySelectorAll(".tool-ad-only").forEach(el => el.style.display = "flex");
+    document.querySelectorAll(".tool-permit-only").forEach(el => el.style.display = "none");
   }
 
   syncPermitUI();

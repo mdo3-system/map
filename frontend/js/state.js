@@ -50,7 +50,7 @@ export class AppState {
       architectNo: "",       // 建築士登録番号 (例: 一級建築士 第123456号)
       architectName: "",     // 氏名
       scale: 2500,           // 縮尺 (2500)
-      baseMapType: "pale",   // "pale"(淡色地図) | "blank"(白地図) | "std"(標準地図)
+      baseMapType: "osm",   // "pale"(淡色地図) | "blank"(白地図) | "std"(標準地図)
       paperSize: "A4_landscape", // "A4_landscape" | "A4_portrait" | "B5_landscape" | "B5_portrait" | "custom"
       marginMm: 10,          // 前後左右10mm余白
       boxPosition: "bottom-right", // "bottom-right" | "bottom-left" | "top-right"

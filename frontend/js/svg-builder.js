@@ -127,7 +127,16 @@ export class SvgBuilder {
     const baseType = info.baseMapType || "osm";
     let defaultZoom = 17;
     if (baseType === "blank") defaultZoom = 14;
-    const zoom = info.tileZoom ? parseInt(info.tileZoom, 10) : defaultZoom;
+    let zoom = info.tileZoom ? parseInt(info.tileZoom, 10) : defaultZoom;
+    if (isNaN(zoom)) zoom = defaultZoom;
+    // タイル上限ズームの厳格なクランプ（404全滅・地図消失バグの防止）
+    if (baseType === "blank") {
+      zoom = Math.min(zoom, 14); // 国土地理院白地図はズーム14が上限
+    } else if (baseType !== "osm") {
+      zoom = Math.min(zoom, 18); // 国土地理院淡色・標準・写真はズーム18が上限
+    } else {
+      zoom = Math.min(zoom, 19); // OSMはズーム19が上限
+    }
 
     // キャンバス四隅の緯度経度
     const [leftLon, topLat] = GeoUtil.svgToGeo(0, 0, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
@@ -163,7 +172,7 @@ export class SvgBuilder {
           const ext = (baseType === "seamlessphoto") ? "jpg" : "png";
           tileUrl = `https://cyberjapandata.gsi.go.jp/xyz/${baseType}/${zoom}/${tx}/${ty}.${ext}`;
         }
-        tileSvg += `<image href="${tileUrl}" x="${tileX.toFixed(1)}" y="${tileY.toFixed(1)}" width="${tileW.toFixed(1)}" height="${tileH.toFixed(1)}" preserveAspectRatio="none" crossorigin="anonymous"/>`;
+        tileSvg += `<image href="${tileUrl}" x="${tileX.toFixed(1)}" y="${tileY.toFixed(1)}" width="${tileW.toFixed(1)}" height="${tileH.toFixed(1)}" preserveAspectRatio="none" />`;
       }
     }
     tileSvg += `</g>`;
@@ -213,13 +222,13 @@ export class SvgBuilder {
         <g id="${lot.id}" data-type="lot" data-id="${lot.id}" class="draggable lot-polygon-el ${isSelected ? 'is-selected' : ''}" title="🖱️ 敷地・図形: クリックで選択 / プロパティ編集">
           <polygon points="${pts}" ${fillAttr} ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/>
           ${isSelected ? `<polygon points="${pts}" fill="none" stroke="#2563eb" stroke-width="${Math.max(strokeWidth + 3, 5)}" stroke-dasharray="6,4" opacity="0.9"/>` : ''}
-          ${isSite ? `
+          ${(isSite && (!state.dest || state.dest.hidePin !== true)) ? `
             <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="#ffffff" stroke="#dc2626" stroke-width="2.2" pointer-events="none"/>
             <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="#dc2626" pointer-events="none"/>
           ` : ''}
           ${lot.label ? `
-            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${isSite ? '#dc2626' : '#1e293b'}" class="map-text halo-stroke" pointer-events="none">${lot.label}</text>
-            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${isSite ? '#dc2626' : '#1e293b'}" class="map-text" pointer-events="none">${lot.label}</text>
+            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text halo-stroke" pointer-events="none">${lot.label}</text>
+            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text" pointer-events="none">${lot.label}</text>
           ` : ''}
         </g>
       `;
@@ -370,8 +379,12 @@ export class SvgBuilder {
    * 各種申請用 申請地シンボル（記号とテキストを独立レンダリング）
    */
   static renderPermitSiteMarker(state, wPx, hPx, widthMm, heightMm, effRadius) {
+    // 記号（〇）が非表示指定されている場合は、二重丸ピン・引出線・申請地プレートすべて完全非表示
+    if (state.dest && state.dest.hidePin === true) {
+      return "";
+    }
     const [dx, dy] = GeoUtil.geoToSvg(state.dest.lon, state.dest.lat, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
-    const destName = (state.dest && state.dest.name) ? state.dest.name : "申請地";
+    const destName = (state.dest && state.dest.name !== undefined) ? state.dest.name : "申請地";
     // A4用紙上で明瞭に目立つ大文字 26px
     const destFSize = Math.max(state.dest.fontSize || 26, 24);
     const destRot = state.dest.rotation || 0;
@@ -705,7 +718,7 @@ export class SvgBuilder {
       svg += SvgBuilder.renderPermitSiteMarker(state, curW, curH, curWMm, curHMm, effRadius);
     } else {
       const [destX, destY] = GeoUtil.geoToSvg(state.dest.lon, state.dest.lat, curW, curH, state.frameCenter, effRadius, curWMm, curHMm);
-      const destName = state.dest.name || "現地";
+      const destName = (state.dest && state.dest.name !== undefined) ? state.dest.name : "現地";
       const destFSize = state.dest.fontSize || 14;
       const destRot = state.dest.rotation || 0;
       const destRotAttr = destRot !== 0 ? `rotate(${destRot})` : '';

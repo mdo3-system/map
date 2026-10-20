@@ -382,14 +382,16 @@ export class SvgBuilder {
 
     let markerSvg = "";
 
-    // 1. 申請地記号（◎ 赤二重丸）- A4用紙で一目で分かる約50px（約5mm）大判サイズ
-    markerSvg += `
-      <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${dx.toFixed(1)}, ${dy.toFixed(1)})" title="🖱️ 申請地記号（◎）: ドラッグで移動 / クリックで選択">
-        <circle cx="0" cy="0" r="54" fill="rgba(220, 38, 38, 0.20)" stroke="#dc2626" stroke-width="5.0" stroke-dasharray="10,5"/>
-        <circle cx="0" cy="0" r="34" fill="#ffffff" stroke="#dc2626" stroke-width="6.5"/>
-        <circle cx="0" cy="0" r="16" fill="#dc2626"/>
-      </g>
-    `;
+    // 1. 申請地記号（◎ 赤二重丸）- A4用紙で一目で分かる大判サイズ（非表示指定時は描画スキップ）
+    if (state.dest && state.dest.hidePin !== true) {
+      markerSvg += `
+        <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${dx.toFixed(1)}, ${dy.toFixed(1)})" title="🖱️ 申請地記号（◎）: ドラッグで移動 / クリックで選択（Deleteキーで削除可能）">
+          <circle cx="0" cy="0" r="54" fill="rgba(220, 38, 38, 0.20)" stroke="#dc2626" stroke-width="5.0" stroke-dasharray="10,5"/>
+          <circle cx="0" cy="0" r="34" fill="#ffffff" stroke="#dc2626" stroke-width="6.5"/>
+          <circle cx="0" cy="0" r="16" fill="#dc2626"/>
+        </g>
+      `;
+    }
 
     // 2. 申請地プレート/バッジ - 大きく目立つ太字プレート
     if (destName && destName.trim()) {
@@ -722,12 +724,14 @@ export class SvgBuilder {
       const isDestLabelSelected = (state.selectedType === "dest-label" || state.selectedId === "dest_label");
       const destBg = state.dest.bgColor || "#d32f2f";
 
-      svg += `
-        <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${destX.toFixed(1)}, ${destY.toFixed(1)})" title="🖱️ ピン本体をドラッグで位置移動 / クリックで選択">
-          <path d="M 0 0 C -11 -11 -13 -22 0 -32 C 13 -22 11 -11 0 0 Z" fill="${destBg}" stroke="#ffffff" stroke-width="2"/>
-          <circle cx="0" cy="-20" r="4.5" fill="#ffffff"/>
-        </g>
-      `;
+      if (state.dest && state.dest.hidePin !== true) {
+        svg += `
+          <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${destX.toFixed(1)}, ${destY.toFixed(1)})" title="🖱️ ピン本体をドラッグで位置移動 / クリックで選択（Deleteキーで削除可能）">
+            <path d="M 0 0 C -11 -11 -13 -22 0 -32 C 13 -22 11 -11 0 0 Z" fill="${destBg}" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="0" cy="-20" r="4.5" fill="#ffffff"/>
+          </g>
+        `;
+      }
 
       if (destName && destName.trim()) {
         const multilineDest = SvgBuilder.renderMultilineText(destName, destFSize, "middle");

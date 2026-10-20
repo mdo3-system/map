@@ -19,7 +19,7 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.15</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.16</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
     </div>
@@ -108,6 +108,10 @@
         </label>
         <button id="btnPermitLocate" class="tool-btn" title="入力した地名地番・住居表示の場所へ地図を移動（Enterキーでも移動可能）" style="padding:2px 8px; font-size:11px; background:#dc2626; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🔍 移動</button>
         <div class="inspector-divider"></div>
+        <label class="inspector-field" title="申請地記号（◎）の表示・非表示切替（建築確認申請等で敷地形状のみ明示する場合はOFF）" style="cursor:pointer; font-weight:bold; color:#f87171;">
+          <input type="checkbox" id="checkPermitSiteMarker" checked style="cursor:pointer; accent-color:#dc2626;"> 記号(◎)表示
+        </label>
+        <div class="inspector-divider"></div>
         <label class="inspector-field">建築士番号:
           <input type="text" id="permitArchitectNo" placeholder="一級 第123456号" style="width:105px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
         </label>
@@ -172,13 +176,15 @@
         </label>
         <div class="inspector-divider"></div>
         <label class="inspector-field">文字サイズ:
-          <input type="range" id="inspectorFontSizeSlider" min="8" max="26" value="12" style="width: 65px;">
-          <span id="inspectorFontSizeVal" style="width: 28px; font-weight: bold;">12px</span>
+          <input type="range" id="inspectorFontSizeSlider" min="8" max="72" value="18" step="1" style="width: 75px;" title="文字サイズ（8px〜72px）">
+          <span id="inspectorFontSizeVal" style="width: 38px; font-weight: bold;">18px</span>
           <div class="btn-micro-group">
-            <button type="button" class="btn-micro" data-font="10">小</button>
-            <button type="button" class="btn-micro" data-font="12">中</button>
-            <button type="button" class="btn-micro" data-font="15">大</button>
-            <button type="button" class="btn-micro" data-font="18">特大</button>
+            <button type="button" class="btn-micro" data-font="14" title="14px">小 14</button>
+            <button type="button" class="btn-micro" data-font="20" title="20px">中 20</button>
+            <button type="button" class="btn-micro" data-font="28" title="28px">大 28</button>
+            <button type="button" class="btn-micro" data-font="36" title="36px (旧18pxの2倍)" style="font-weight:bold; color:#f59e0b;">特大 36</button>
+            <button type="button" class="btn-micro" data-font="52" title="52px">極大 52</button>
+            <button type="button" class="btn-micro" data-font="68" title="68px (旧32pxの2倍超)" style="font-weight:bold; color:#dc2626;">最大 68</button>
           </div>
         </label>
         <div class="inspector-divider"></div>
@@ -510,13 +516,15 @@
 
         <div class="modal-grid-2">
           <div class="modal-form-group">
-            <label class="modal-label">文字サイズ: <span id="modalFontSizeVal" class="modal-val">12px</span></label>
-            <input type="range" id="modalFontSizeSlider" min="8" max="32" value="12" class="modal-range">
-            <div class="btn-micro-group" style="margin-top:6px;">
-              <button type="button" class="btn-micro modal-font-preset" data-font="10">小 10</button>
-              <button type="button" class="btn-micro modal-font-preset" data-font="12">中 12</button>
-              <button type="button" class="btn-micro modal-font-preset" data-font="15">大 15</button>
-              <button type="button" class="btn-micro modal-font-preset" data-font="18">特大 18</button>
+            <label class="modal-label">文字サイズ: <span id="modalFontSizeVal" class="modal-val">18px</span></label>
+            <input type="range" id="modalFontSizeSlider" min="8" max="72" value="18" step="1" class="modal-range" title="文字サイズ（8px〜72px）">
+            <div class="btn-micro-group" style="margin-top:6px; flex-wrap:wrap; gap:3px;">
+              <button type="button" class="btn-micro modal-font-preset" data-font="14">小 14</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="20">中 20</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="28">大 28</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="36" style="font-weight:bold; color:#f59e0b;">特大 36</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="52" style="font-weight:bold; color:#ef4444;">極大 52</button>
+              <button type="button" class="btn-micro modal-font-preset" data-font="68" style="font-weight:bold; color:#dc2626;">最大 68</button>
             </div>
           </div>
 

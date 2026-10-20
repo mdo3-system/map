@@ -322,7 +322,8 @@ export class AppState {
       return { type: "compass", data: this.compass };
     }
     if (this.selectedId === "dest_pin" || this.selectedId === "dest_label" || this.selectedType === "dest-icon" || this.selectedType === "dest-label") {
-      return { type: "dest", data: this.dest };
+      const isIcon = (this.selectedId === "dest_pin" || this.selectedType === "dest-icon");
+      return { type: isIcon ? "dest-icon" : "dest", data: this.dest };
     }
     const landmark = this.findLandmark(this.selectedId);
     if (landmark) return { type: "landmark", data: landmark };
@@ -361,6 +362,15 @@ export class AppState {
     } else if (type === "dest-label") {
       deletedName = this.appMode === "permit" ? "申請地プレート" : "目的地プレート";
       this.dest.name = "";
+    } else if (type === "dest-icon" || id === "dest_pin" || strId === "dest_pin") {
+      deletedName = this.appMode === "permit" ? "申請地記号（◎）" : "目的地ピン";
+      this.dest.hidePin = true;
+      if (this.permitScene && this.permitScene.dest) {
+        this.permitScene.dest.hidePin = true;
+      }
+      if (this.adScene && this.adScene.dest) {
+        this.adScene.dest.hidePin = true;
+      }
     } else if (type === "text" || this.findText(strId)) {
       const t = this.findText(strId);
       deletedName = t ? t.text : "文字";

@@ -293,16 +293,33 @@ document.addEventListener("DOMContentLoaded", () => {
           inspectorPlateBgDivider.style.display = "none";
         }
 
-        if (sel.type === "dest") {
-          selectedBadge.textContent = "目的地";
-          inspectorName.value = sel.data.name || "現地";
-          inspectorFontSizeSlider.value = sel.data.fontSize || 14;
-          inspectorFontSizeVal.textContent = `${sel.data.fontSize || 14}px`;
-          inspectorRotationSlider.value = sel.data.rotation || 0;
-          inspectorRotationVal.textContent = `${sel.data.rotation || 0}°`;
-          inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
-          inspectorLeaderLineLabel.style.display = "flex";
-          btnInspectorDelete.style.display = "none"; // 目的地ピン本体は全消去以外削除不可
+        if (sel.type === "dest" || sel.type === "dest-icon") {
+          const isIcon = (sel.type === "dest-icon" || state.selectedId === "dest_pin" || state.selectedType === "dest-icon");
+          selectedBadge.textContent = isIcon
+            ? (state.appMode === "permit" ? "申請地記号(◎)" : "目的地ピン")
+            : (state.appMode === "permit" ? "申請地プレート" : "目的地プレート");
+
+          if (isIcon) {
+            inspectorNameField.style.display = "none";
+            inspectorFontSizeField.style.display = "none";
+            inspectorRotationField.style.display = "none";
+            inspectorLeaderLineLabel.style.display = "none";
+            btnInspectorDelete.style.display = "inline-flex";
+            btnInspectorDelete.textContent = "🗑️ 記号削除";
+          } else {
+            inspectorName.value = sel.data.name || (state.appMode === "permit" ? "申請地" : "現地");
+            inspectorNameField.style.display = "flex";
+            inspectorLeaderLineLabel.style.display = "flex";
+            btnInspectorDelete.style.display = "inline-flex";
+            btnInspectorDelete.textContent = "🗑️ プレート削除";
+            inspectorFontSizeField.style.display = "flex";
+            inspectorFontSizeSlider.value = sel.data.fontSize || 24;
+            inspectorFontSizeVal.textContent = `${sel.data.fontSize || 24}px`;
+            inspectorRotationField.style.display = "flex";
+            inspectorRotationSlider.value = sel.data.rotation || 0;
+            inspectorRotationVal.textContent = `${sel.data.rotation || 0}°`;
+            inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
+          }
         } else if (sel.type === "landmark") {
           selectedBadge.textContent = sel.data.category === "station" ? "駅" : sel.data.icon_type === "signal" ? "信号機" : "施設";
           inspectorName.value = sel.data.name || "";
@@ -937,9 +954,7 @@ document.addEventListener("DOMContentLoaded", () => {
       text: txt,
       lat: lat,
       lon: lon,
-      fontSize: 12,
-      rotation: 0,
-      hasLeaderLine: false
+      fontSize: 18, rotation: 0, hasLeaderLine: false
     });
     syncAll();
   }
@@ -1365,6 +1380,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
   const btnPermitLocate = document.getElementById("btnPermitLocate");
+  const checkPermitSiteMarker = document.getElementById("checkPermitSiteMarker");
+  if (checkPermitSiteMarker) {
+    checkPermitSiteMarker.addEventListener("change", () => {
+      state.saveToHistory();
+      state.dest.hidePin = !checkPermitSiteMarker.checked;
+      if (state.permitScene) state.permitScene.dest.hidePin = state.dest.hidePin;
+      renderSvg();
+      showToast(state.dest.hidePin ? "申請地記号（◎）を非表示にしました" : "申請地記号（◎）を表示しました");
+    });
+  }
   async function locatePermitAddress() {
     const q = (permitAddress && permitAddress.value.trim()) || (permitLotNumber && permitLotNumber.value.trim());
     if (!q) {

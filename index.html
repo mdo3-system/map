@@ -19,7 +19,7 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.14</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.15</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
     </div>
@@ -106,6 +106,7 @@
         <label class="inspector-field">住居表示:
           <input type="text" id="permitAddress" placeholder="例: 坂戸市西坂戸3-5-12" style="width:125px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
         </label>
+        <button id="btnPermitLocate" class="tool-btn" title="入力した地名地番・住居表示の場所へ地図を移動（Enterキーでも移動可能）" style="padding:2px 8px; font-size:11px; background:#dc2626; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🔍 移動</button>
         <div class="inspector-divider"></div>
         <label class="inspector-field">建築士番号:
           <input type="text" id="permitArchitectNo" placeholder="一級 第123456号" style="width:105px; padding:2px 5px; font-size:11px; background:#0b0f19; color:#fff; border:1px solid #334155; border-radius:4px;">
@@ -116,10 +117,11 @@
         <div class="inspector-divider"></div>
         <label class="inspector-field">背景図:
           <select id="permitBaseMap" class="poi-select" style="padding:2px 4px; font-size:11px;">
-            <option value="pale">淡色地図 (標準・推奨)</option>
+            <option value="osm" selected>標準地図 (OSM・文字小・高精細[推奨])</option>
+            <option value="pale">淡色地図 (国土地理院)</option>
             <option value="seamlessphoto">航空写真 (オルソ)</option>
             <option value="blank">白地図 (シンプル白黒)</option>
-            <option value="std">標準地図 (等高線・カラー)</option>
+            <option value="std">標準地図 (国土地理院・等高線)</option>
           </select>
         </label>
         <div class="inspector-divider"></div>

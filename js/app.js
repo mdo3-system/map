@@ -1364,11 +1364,29 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSvg();
     });
   }
+  const btnPermitLocate = document.getElementById("btnPermitLocate");
+  async function locatePermitAddress() {
+    const q = (permitAddress && permitAddress.value.trim()) || (permitLotNumber && permitLotNumber.value.trim());
+    if (!q) {
+      showToast("地名地番または住居表示を入力してください", true);
+      return;
+    }
+    await searchAddress(q);
+  }
+  if (btnPermitLocate) {
+    btnPermitLocate.addEventListener("click", locatePermitAddress);
+  }
   if (permitLotNumber) {
     permitLotNumber.addEventListener("input", (e) => {
       state.saveToHistory();
       state.permitInfo.lotNumber = e.target.value;
       renderSvg();
+    });
+    permitLotNumber.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        locatePermitAddress();
+      }
     });
   }
   if (permitAddress) {
@@ -1376,6 +1394,12 @@ document.addEventListener("DOMContentLoaded", () => {
       state.saveToHistory();
       state.permitInfo.address = e.target.value;
       renderSvg();
+    });
+    permitAddress.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        locatePermitAddress();
+      }
     });
   }
   if (permitArchitectNo) {
@@ -1483,15 +1507,15 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSvg();
   });
 
-  async function searchAddress() {
-    const q = inputAddress.value.trim();
+  async function searchAddress(targetQuery) {
+    const q = (typeof targetQuery === "string" ? targetQuery : (inputAddress ? inputAddress.value : "")).trim();
     if (!q) return;
 
     try {
       let lat = null;
       let lon = null;
 
-      // 1. バックエンドAPI経由を試行
+      // 1. バックエンドAPI経由
       try {
         const res = await fetch("/api/geocode", {
           method: "POST",
@@ -1500,24 +1524,70 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         if (res.ok) {
           const d = await res.json();
-          lat = d.lat;
-          lon = d.lon;
+          if (d.lat && d.lon) {
+            lat = d.lat;
+            lon = d.lon;
+          }
         }
       } catch (backendErr) {
-        console.log("Backend geocode unavailable, falling back to GSI API:", backendErr);
+        console.log("Backend geocode unavailable, falling back:", backendErr);
       }
 
-      // 2. 静的サーバー（Xserver等）用の国土地理院API直接フォールバック
+      // 2. 国土地理院 API (完全一致検索)
       if (lat === null || lon === null) {
-        const gsiRes = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`);
-        if (!gsiRes.ok) throw new Error("住所検索に失敗しました");
-        const gsiData = await gsiRes.json();
-        if (gsiData && gsiData.length > 0 && gsiData[0].geometry) {
-          lon = gsiData[0].geometry.coordinates[0];
-          lat = gsiData[0].geometry.coordinates[1];
-        } else {
-          throw new Error("該当する住所が見つかりませんでした");
+        try {
+          const gsiRes = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`);
+          if (gsiRes.ok) {
+            const gsiData = await gsiRes.json();
+            if (gsiData && gsiData.length > 0 && gsiData[0].geometry) {
+              lon = gsiData[0].geometry.coordinates[0];
+              lat = gsiData[0].geometry.coordinates[1];
+            }
+          }
+        } catch (e) {
+          console.warn("GSI exact geocode failed:", e);
         }
+      }
+
+      // 3. 国土地理院 API (番地や数字を取り除いた段階的フォールバック)
+      if (lat === null || lon === null) {
+        const simplified = q.replace(/[0-9０-９]+番.*$|[0-9０-９]+-[0-9０-９].*$|[0-9０-９]+号.*$/g, "").trim();
+        if (simplified && simplified !== q) {
+          try {
+            const gsiRes2 = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(simplified)}`);
+            if (gsiRes2.ok) {
+              const gsiData2 = await gsiRes2.json();
+              if (gsiData2 && gsiData2.length > 0 && gsiData2[0].geometry) {
+                lon = gsiData2[0].geometry.coordinates[0];
+                lat = gsiData2[0].geometry.coordinates[1];
+              }
+            }
+          } catch (e) {
+            console.warn("GSI simplified geocode failed:", e);
+          }
+        }
+      }
+
+      // 4. OpenStreetMap Nominatim フォールバック
+      if (lat === null || lon === null) {
+        try {
+          const nomRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=jp&limit=1`, {
+            headers: { "Accept-Language": "ja" }
+          });
+          if (nomRes.ok) {
+            const nomData = await nomRes.json();
+            if (nomData && nomData.length > 0) {
+              lat = parseFloat(nomData[0].lat);
+              lon = parseFloat(nomData[0].lon);
+            }
+          }
+        } catch (e) {
+          console.warn("Nominatim geocode failed:", e);
+        }
+      }
+
+      if (lat === null || lon === null) {
+        throw new Error(`該当の住所「${q}」が見つかりませんでした。町名や大字までで検索するか、左地図で目的の場所をクリック・ドラッグしてください。`);
       }
 
       state.saveToHistory();
@@ -1528,15 +1598,17 @@ document.addEventListener("DOMContentLoaded", () => {
       state.routes = [];
       state.landmarks = [];
       state.texts = [];
+      state.lots = [];
       state.drawingPoints = [];
 
       state.dest.lat = lat;
       state.dest.lon = lon;
-      state.dest.name = (state.appMode === "permit") ? "申請地" : ((inputDestName ? inputDestName.value.trim() : "") || "現地");
+      const isPermit = (state.appMode === "permit");
+      state.dest.name = isPermit ? "申請地" : ((inputDestName ? inputDestName.value.trim() : "") || "目的地");
       state.frameCenter.lat = lat;
       state.frameCenter.lon = lon;
 
-      // 待機中の退避シーンも最新の検索座標に同期
+      // 待機の退避シーンも最新の座標に同期
       if (state.adScene) {
         state.adScene.dest.lat = lat;
         state.adScene.dest.lon = lon;
@@ -1547,15 +1619,35 @@ document.addEventListener("DOMContentLoaded", () => {
         state.permitScene.dest.lon = lon;
         state.permitScene.frameCenter = { lat, lon };
       }
-      state.viewRadiusM = 450;
-      state.effectiveRadiusM = 450;
+
+      if (isPermit) {
+        const s = (state.permitInfo && state.permitInfo.scale) ? state.permitInfo.scale : 2500;
+        state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(s, state.widthMm, 10);
+        // 表題欄にも住所を自動反映
+        if (!state.permitInfo.address || state.permitInfo.address.trim() === "") {
+          state.permitInfo.address = q;
+        }
+        if (!state.permitInfo.lotNumber || state.permitInfo.lotNumber.trim() === "") {
+          state.permitInfo.lotNumber = q;
+        }
+        if (permitAddress) permitAddress.value = state.permitInfo.address;
+        if (permitLotNumber) permitLotNumber.value = state.permitInfo.lotNumber;
+      } else {
+        state.viewRadiusM = 450;
+        state.effectiveRadiusM = 450;
+      }
+
+      // 入力バーにも同期
+      if (inputAddress && inputAddress.value !== q) {
+        inputAddress.value = q;
+      }
 
       mapTrace.map.setView([lat, lon], 16);
       mapTrace.destMarker.setLatLng([lat, lon]);
       mapTrace.frameCenterMarker.setLatLng([lat, lon]);
       mapTrace.updateDestPinIcon();
       syncAll();
-      showToast(`「${q}」を表示しました`);
+      showToast(`「${q}」へ移動しました`);
     } catch (e) {
       alert(e.message);
     }
@@ -1582,10 +1674,24 @@ document.addEventListener("DOMContentLoaded", () => {
   btnUndo.addEventListener("click", handleUndo);
 
   btnClearAll.addEventListener("click", () => {
-    if (confirm("描画したすべての道路、線路、施設、文字を削除してリセットしますか？")) {
+    if (confirm("作図したすべての図形、敷地、および住所・表題欄データを消去してリセットしますか？")) {
       state.clearAll();
+      if (state.permitInfo) {
+        state.permitInfo.lotNumber = "";
+        state.permitInfo.address = "";
+      }
+      if (state.permitScene && state.permitScene.permitInfo) {
+        state.permitScene.permitInfo.lotNumber = "";
+        state.permitScene.permitInfo.address = "";
+      }
+      if (permitLotNumber) permitLotNumber.value = "";
+      if (permitAddress) permitAddress.value = "";
+      if (inputAddress) inputAddress.value = "";
+      try {
+        localStorage.removeItem("annaizu_autosave_v3");
+      } catch (err) {}
       syncAll();
-      showToast("すべての作図を消去しました", true);
+      showToast("すべての作図・住所データを消去・リセットしました", true);
     }
   });
 

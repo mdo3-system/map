@@ -123,11 +123,11 @@ export class SvgBuilder {
    */
   static renderBackgroundTiles(state, wPx, hPx, widthMm, heightMm, effRadius) {
     const info = state.permitInfo || {};
-    const baseType = info.baseMapType || "pale";
-    // ユーザー指定のズーム詳細度 (15:文字大, 16:標準, 17:詳細・文字小[標準推奨], 18:超精細)
-    let defaultZoom = (baseType === "blank") ? 14 : 17;
+    // デフォルトを左画面と同じ高精細・文字小の「osm」に設定
+    const baseType = info.baseMapType || "osm";
+    let defaultZoom = 17;
+    if (baseType === "blank") defaultZoom = 14;
     const zoom = info.tileZoom ? parseInt(info.tileZoom, 10) : defaultZoom;
-    const ext = (baseType === "seamlessphoto") ? "jpg" : "png";
 
     // キャンバス四隅の緯度経度
     const [leftLon, topLat] = GeoUtil.svgToGeo(0, 0, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
@@ -156,7 +156,13 @@ export class SvgBuilder {
         const tileX = Math.min(x1, x2);
         const tileY = Math.min(y1, y2);
 
-        const tileUrl = `https://cyberjapandata.gsi.go.jp/xyz/${baseType}/${zoom}/${tx}/${ty}.${ext}`;
+        let tileUrl = "";
+        if (baseType === "osm") {
+          tileUrl = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        } else {
+          const ext = (baseType === "seamlessphoto") ? "jpg" : "png";
+          tileUrl = `https://cyberjapandata.gsi.go.jp/xyz/${baseType}/${zoom}/${tx}/${ty}.${ext}`;
+        }
         tileSvg += `<image href="${tileUrl}" x="${tileX.toFixed(1)}" y="${tileY.toFixed(1)}" width="${tileW.toFixed(1)}" height="${tileH.toFixed(1)}" preserveAspectRatio="none" crossorigin="anonymous"/>`;
       }
     }
@@ -366,7 +372,8 @@ export class SvgBuilder {
   static renderPermitSiteMarker(state, wPx, hPx, widthMm, heightMm, effRadius) {
     const [dx, dy] = GeoUtil.geoToSvg(state.dest.lon, state.dest.lat, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
     const destName = (state.dest && state.dest.name) ? state.dest.name : "申請地";
-    const destFSize = state.dest.fontSize || 13;
+    // A4用紙上で明瞭に目立つ大文字 26px
+    const destFSize = Math.max(state.dest.fontSize || 26, 24);
     const destRot = state.dest.rotation || 0;
     const destRotAttr = destRot !== 0 ? `rotate(${destRot})` : '';
 
@@ -375,28 +382,28 @@ export class SvgBuilder {
 
     let markerSvg = "";
 
-    // 1. 申請地記号（◎ 赤二重丸）- 独立ドラッグ可能
+    // 1. 申請地記号（◎ 赤二重丸）- A4用紙で一目で分かる約50px（約5mm）大判サイズ
     markerSvg += `
-      <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${dx.toFixed(1)}, ${dy.toFixed(1)})" title="🖱️ 申請地記号（◎）: ドラッグで移動 / クリックで選択 / ダブルクリックで編集">
-        <circle cx="0" cy="0" r="16" fill="rgba(220, 38, 38, 0.18)" stroke="#dc2626" stroke-width="2.2" stroke-dasharray="4,2"/>
-        <circle cx="0" cy="0" r="9" fill="#ffffff" stroke="#dc2626" stroke-width="2.5"/>
-        <circle cx="0" cy="0" r="4.5" fill="#dc2626"/>
+      <g id="dest_pin" data-type="dest-icon" class="draggable dest-icon-el ${isDestIconSelected ? 'is-selected' : ''}" transform="translate(${dx.toFixed(1)}, ${dy.toFixed(1)})" title="🖱️ 申請地記号（◎）: ドラッグで移動 / クリックで選択">
+        <circle cx="0" cy="0" r="54" fill="rgba(220, 38, 38, 0.20)" stroke="#dc2626" stroke-width="5.0" stroke-dasharray="10,5"/>
+        <circle cx="0" cy="0" r="34" fill="#ffffff" stroke="#dc2626" stroke-width="6.5"/>
+        <circle cx="0" cy="0" r="16" fill="#dc2626"/>
       </g>
     `;
 
-    // 2. 申請地プレート/バッジ - 独立ドラッグ可能
+    // 2. 申請地プレート/バッジ - 大きく目立つ太字プレート
     if (destName && destName.trim()) {
       const destLines = destName.split("\n");
       const maxDestLineLen = Math.max(...destLines.map(l => l.length), 1);
-      const tW = Math.max(maxDestLineLen * (destFSize + 2) + 20, 56);
-      const tH = (destFSize * 1.25) * destLines.length + 10;
+      const tW = Math.max(maxDestLineLen * (destFSize + 4) + 40, 120);
+      const tH = (destFSize * 1.3) * destLines.length + 18;
 
-      const destLox = state.dest.labelOffsetX !== undefined ? state.dest.labelOffsetX : 20;
-      const destLoy = state.dest.labelOffsetY !== undefined ? state.dest.labelOffsetY : -20;
+      const destLox = state.dest.labelOffsetX !== undefined ? state.dest.labelOffsetX : 75;
+      const destLoy = state.dest.labelOffsetY !== undefined ? state.dest.labelOffsetY : -65;
       const dlx = dx + destLox;
       const dly = dy + destLoy;
 
-      if (state.dest.hasLeaderLine) {
+      if (state.dest.hasLeaderLine !== false) {
         markerSvg += SvgBuilder.buildLeaderLine(dx, dy, dlx, dly);
       }
 
@@ -404,9 +411,9 @@ export class SvgBuilder {
       const destBg = state.dest.bgColor || "#dc2626";
 
       markerSvg += `
-        <g id="dest_label" data-type="dest-label" class="draggable dest-label-el ${isDestLabelSelected ? 'is-selected' : ''}" transform="translate(${dlx.toFixed(1)}, ${dly.toFixed(1)}) ${destRotAttr}" title="🖱️ 申請地プレート: ドラッグで移動 / ダブルクリックで編集">
-          <rect x="${-tW/2}" y="${-tH/2}" width="${tW}" height="${tH}" rx="5" ry="5" fill="${destBg}" stroke="#ffffff" stroke-width="2.0" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.3))"/>
-          <text x="0" y="0" text-anchor="middle" class="map-text dest-label" font-size="${destFSize}px">${multilineDest}</text>
+        <g id="dest_label" data-type="dest-label" class="draggable dest-label-el ${isDestLabelSelected ? 'is-selected' : ''}" transform="translate(${dlx.toFixed(1)}, ${dly.toFixed(1)}) ${destRotAttr}" title="🖱️ 申請地プレート: ドラッグで移動 / クリックで選択">
+          <rect x="${-tW/2}" y="${-tH/2}" width="${tW}" height="${tH}" rx="8" ry="8" fill="${destBg}" stroke="#ffffff" stroke-width="4.0" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.4))"/>
+          <text x="0" y="0" text-anchor="middle" class="map-text dest-label" font-size="${destFSize}px" font-weight="900" fill="#ffffff">${multilineDest}</text>
         </g>
       `;
     }
@@ -742,9 +749,16 @@ export class SvgBuilder {
 
     // Layer 8: 方位記号 (N)
     if (state.showCompass) {
-      const compX = (state.compass && state.compass.x !== null) ? state.compass.x : (curW - 40);
-      const compY = (state.compass && state.compass.y !== null) ? state.compass.y : 40;
-      const compScale = (state.compass && state.compass.scale) ? state.compass.scale : 1.0;
+      // 各種申請モード時はA4/B5用紙スケールに合わせて約3.5倍（約140px = 14mm）に拡大
+      const baseCompassScale = isPermit ? 3.5 : 1.0;
+      const userScale = (state.compass && state.compass.scale) ? state.compass.scale : 1.0;
+      const compScale = baseCompassScale * userScale;
+
+      const defaultX = isPermit ? (curW - 140) : (curW - 40);
+      const defaultY = isPermit ? 140 : 40;
+
+      const compX = (state.compass && state.compass.x !== null) ? state.compass.x : defaultX;
+      const compY = (state.compass && state.compass.y !== null) ? state.compass.y : defaultY;
       const compDesign = (state.compass && state.compass.design) ? state.compass.design : (isPermit ? "arrow_simple" : "circle_modern");
       const isCompassSelected = (state.selectedId === "compass" || state.selectedType === "compass");
       const compassGfx = SvgBuilder.renderCompassGraphic(compDesign);

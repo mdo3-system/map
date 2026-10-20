@@ -48,6 +48,55 @@ document.addEventListener("DOMContentLoaded", () => {
   const modeHint = document.getElementById("modeHint");
   const badgeScale = document.getElementById("badgeScale");
   const previewCard = document.getElementById("previewCard");
+
+  // スプリットビュー リサイザー & プリセット切り替え
+  const splitDivider = document.getElementById("splitDivider");
+  const paneLeft = document.querySelector(".pane-left");
+  const splitContainer = document.querySelector(".split-container");
+  const btnLayoutMapWide = document.getElementById("btnLayoutMapWide");
+  const btnLayoutHalf = document.getElementById("btnLayoutHalf");
+  const btnLayoutPreviewWide = document.getElementById("btnLayoutPreviewWide");
+
+  function setSplitRatio(leftPercent) {
+    if (!paneLeft) return;
+    const clamped = Math.max(15, Math.min(85, leftPercent));
+    paneLeft.style.flex = `0 0 ${clamped}%`;
+    if (mapTrace && mapTrace.map) {
+      setTimeout(() => mapTrace.map.invalidateSize(), 50);
+    }
+  }
+
+  if (btnLayoutMapWide) btnLayoutMapWide.addEventListener("click", () => setSplitRatio(70));
+  if (btnLayoutHalf) btnLayoutHalf.addEventListener("click", () => setSplitRatio(50));
+  if (btnLayoutPreviewWide) btnLayoutPreviewWide.addEventListener("click", () => setSplitRatio(30));
+
+  if (splitDivider && paneLeft && splitContainer) {
+    let isDraggingSplit = false;
+    splitDivider.addEventListener("mousedown", (e) => {
+      isDraggingSplit = true;
+      splitDivider.classList.add("is-dragging");
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDraggingSplit) return;
+      const rect = splitContainer.getBoundingClientRect();
+      const leftW = e.clientX - rect.left;
+      const pct = (leftW / rect.width) * 100;
+      setSplitRatio(pct);
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isDraggingSplit) {
+        isDraggingSplit = false;
+        splitDivider.classList.remove("is-dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        if (mapTrace && mapTrace.map) mapTrace.map.invalidateSize();
+      }
+    });
+  }
   const svgContainer = document.getElementById("svgContainer");
 
   // ズームボタン
@@ -1010,13 +1059,14 @@ document.addEventListener("DOMContentLoaded", () => {
           className: "active-drawing-line",
           color: "#dc2626",
           fillColor: "#ef4444",
-          fillOpacity: 0.25,
+          fillOpacity: 0.30,
           dashArray: "4, 4",
           interactive: false
         }).addTo(mapTrace.map);
       } else {
         state.activePolyline.setLatLngs(state.drawingPoints);
       }
+      updateDrawingActionBar();
     } else if (["major_road", "medium_road", "minor_road", "railway", "route"].includes(state.mode)) {
       state.drawingPoints.push([lat, lon]);
 
@@ -1187,6 +1237,58 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 作図中アクションバー（敷地・道路・線路のリアルタイム完了・取消・頂点数表示）
+  const inspectorDrawing = document.getElementById("inspectorDrawing");
+  const drawingBadge = document.getElementById("drawingBadge");
+  const drawingPointsCount = document.getElementById("drawingPointsCount");
+  const btnFinishDrawing = document.getElementById("btnFinishDrawing");
+  const btnCancelDrawing = document.getElementById("btnCancelDrawing");
+
+  function updateDrawingActionBar() {
+    if (!inspectorDrawing) return;
+    const isDrawingMode = ["lot", "major_road", "medium_road", "minor_road", "railway", "route"].includes(state.mode);
+    const count = (state.drawingPoints || []).length;
+    if (isDrawingMode && count > 0) {
+      inspectorDrawing.style.display = "flex";
+      if (drawingBadge) {
+        drawingBadge.textContent = state.mode === "lot" ? "📐 敷地作図中" : "✏️ 線作図中";
+      }
+      if (drawingPointsCount) {
+        const canFinish = (state.mode === "lot" ? count >= 3 : count >= 2);
+        drawingPointsCount.innerHTML = `頂点: <strong style="color:#f87171;">${count}点</strong> ${canFinish ? '（作図完了できます）' : '（あと' + (state.mode === "lot" ? 3 - count : 2 - count) + '点以上必要）'}`;
+      }
+    } else {
+      inspectorDrawing.style.display = "none";
+    }
+  }
+
+  function cancelCurrentDrawing() {
+    state.drawingPoints = [];
+    if (state.activePolyline) {
+      mapTrace.map.removeLayer(state.activePolyline);
+      state.activePolyline = null;
+    }
+    updateDrawingActionBar();
+    showToast("作図を取り消しました");
+  }
+
+  if (btnFinishDrawing) btnFinishDrawing.addEventListener("click", () => finishCurrentDrawing());
+  if (btnCancelDrawing) btnCancelDrawing.addEventListener("click", () => cancelCurrentDrawing());
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if ((state.drawingPoints || []).length > 0) {
+        cancelCurrentDrawing();
+      }
+    } else if (e.key === "Enter") {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) return;
+      if ((state.drawingPoints || []).length >= (state.mode === "lot" ? 3 : 2)) {
+        finishCurrentDrawing();
+      }
+    }
+  });
+
   function finishCurrentDrawing() {
     if (state.mode === "lot" && state.drawingPoints.length >= 3) {
       state.saveToHistory();
@@ -1240,6 +1342,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mapTrace.map.removeLayer(state.activePolyline);
       state.activePolyline = null;
     }
+    updateDrawingActionBar();
   }
 
   // 9. 道路スタイル変更連動

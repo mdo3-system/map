@@ -7,22 +7,26 @@ export class MapTraceController {
     this.state = state;
     this.callbacks = callbacks || {}; // { onStateChange, onElementSelect, onDeleteElement }
 
-    // Leaflet 地図初期化
+    // Leaflet 地図初期化（最大ズーム22・ダブルクリック作図のためdoubleClickZoom無効化）
     this.map = L.map(mapContainerId, {
       center: [state.frameCenter.lat, state.frameCenter.lon],
-      zoom: 16,
-      zoomControl: true
+      zoom: 17,
+      maxZoom: 22,
+      zoomControl: true,
+      doubleClickZoom: false
     });
 
-    // タイルレイヤー
+    // タイルレイヤー（敷地境界を高倍率で拡大表示できるよう maxZoom: 22 までデジタル拡大対応）
     this.tileLayers = {
       satellite: L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", {
         attribution: "国土地理院(航空写真)",
-        maxZoom: 18
+        maxNativeZoom: 18,
+        maxZoom: 22
       }),
       osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap",
-        maxZoom: 19
+        maxNativeZoom: 19,
+        maxZoom: 22
       })
     };
     this.tileLayers.satellite.addTo(this.map);
@@ -61,17 +65,9 @@ export class MapTraceController {
       }
     });
 
-    // 地図ドラッグ移動・ズーム時の中心連動 (特に各種申請モードのプレビュー同期)
-    this.map.on("moveend", () => {
-      if (this.state.appMode === "permit") {
-        const c = this.map.getCenter();
-        this.state.frameCenter.lat = c.lat;
-        this.state.frameCenter.lon = c.lng;
-        this.frameCenterMarker.setLatLng(c);
-        this.updateFramingRectangle();
-        if (this.callbacks.onStateChange) this.callbacks.onStateChange();
-      }
-    });
+    // 地図閲覧パン時の安全処理:
+    // ※ moveendでframeCenterを書き換えると、作図時や敷地ズーム時に印刷枠全体がズレるため
+    // 枠中心の移動は「✥ 作図枠中心」マーカーのドラッグ、または「中心を申請地に指定」ボタンでのみ行います。
 
     // 目的地ピンマーカー
     this.destMarker = L.marker([state.dest.lat, state.dest.lon], {

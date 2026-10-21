@@ -3,6 +3,32 @@
 // ==========================================
 
 export class AppState {
+  /**
+   * 状態変更リスナーの登録 (Observerパターン: フェーズ3)
+   */
+  subscribe(fn) {
+    if (typeof fn === "function") {
+      this._listeners.push(fn);
+    }
+    return () => {
+      this._listeners = this._listeners.filter(l => l !== fn);
+    };
+  }
+
+  /**
+   * 状態変更を通知（左右パネル・インスペクターが自動再描画・更新）
+   */
+  notify(changeType = "all") {
+    if (!this._listeners) return;
+    for (const listener of this._listeners) {
+      try {
+        listener(changeType, this);
+      } catch (err) {
+        console.error("Error in state change listener:", err);
+      }
+    }
+  }
+
   constructor() {
     this.mode = "select"; // select | dest | major_road | medium_road | minor_road | railway | route | poi | text | lot | delete
     this.selectedId = null;

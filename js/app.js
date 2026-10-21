@@ -236,8 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // SRP: プロパティ設定モーダルコントローラーの初期化
   inspectorController = new InspectorController(state, {
     onUpdate: () => {
-      renderSvg();
-      if (mapTrace && mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+      state.notify("ui_update");
     },
     onDelete: (id, type) => {
       callbacks.onDeleteElement(id, type);
@@ -245,10 +244,30 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast: showToast
   });
 
+  
+  // ==========================================
+  // フェーズ3: 左右描画エンジンの統一化（Observerリアクティブ自動同期基盤）
+  // 状態(State)の変更を検知し、左右のパネルおよびインスペクターを一括自動更新
+  // ==========================================
+  state.subscribe((changeType) => {
+    // 1. 右画面SVGの再描画
+    renderSvg();
+
+    // 2. 左画面Leafletの再描画（レイヤー & ピン同期）
+    if (mapTrace) {
+      if (mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+      if (mapTrace.updateDestPinIcon) mapTrace.updateDestPinIcon();
+    }
+
+    // 3. 常駐インスペクターの更新
+    if (inspectorController) {
+      inspectorController.update();
+    }
+  });
+
   propertyModalController = new PropertyModalController(state, {
     onUpdate: () => {
-      renderSvg();
-      if (mapTrace && mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+      state.notify("ui_update");
     },
     onDelete: (id, type) => {
       callbacks.onDeleteElement(id, type);

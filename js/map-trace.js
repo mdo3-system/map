@@ -99,12 +99,25 @@ export class MapTraceController {
   }
 
   updateDestPinIcon() {
-    const destName = this.state.dest.name || "現地";
+    if (!this.destMarker) return;
+    if (this.state.dest.hidePin === true) {
+      if (this.map.hasLayer(this.destMarker)) {
+        this.map.removeLayer(this.destMarker);
+      }
+      return;
+    }
+    if (!this.map.hasLayer(this.destMarker)) {
+      this.destMarker.addTo(this.map);
+    }
+    const destName = (this.state.dest.name !== undefined) ? this.state.dest.name : "";
+    const labelHtml = (destName && destName.trim())
+      ? `<div style="background:#dc2626; color:white; border:2px solid white; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:bold; white-space:nowrap; margin-left:-4px; box-shadow:0 2px 5px rgba(0,0,0,0.4);">${destName}</div>`
+      : '';
     const destIcon = L.divIcon({
       html: `
         <div style="display:flex; align-items:center; cursor:move;" title="ドラッグで移動・クリックで選択">
           <div style="background:#dc2626; color:white; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.5); font-size:12px;">📍</div>
-          <div style="background:#dc2626; color:white; border:2px solid white; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:bold; white-space:nowrap; margin-left:-4px; box-shadow:0 2px 5px rgba(0,0,0,0.4);">${destName}</div>
+          ${labelHtml}
         </div>
       `,
       iconAnchor: [11, 22],
@@ -350,7 +363,7 @@ export class MapTraceController {
           }
         });
 
-        // 区画の中央付近にラベル表示
+        // 区画のラベル表示（カギ型引き出し線連動）
         const labelText = lot.label || (isSite ? "申請地" : "");
         if (labelText) {
           let centerLat = 0, centerLon = 0;
@@ -358,12 +371,43 @@ export class MapTraceController {
           centerLat /= lot.points.length;
           centerLon /= lot.points.length;
 
+          let targetLat = centerLat;
+          let targetLon = centerLon;
+
+          if (lot.hasLeaderLine) {
+            // オフセット（約25m〜40m相当）を反映して引き出し線を描画
+            const lox = (lot.labelOffsetX !== undefined ? lot.labelOffsetX : 70) * 0.5;
+            const loy = (lot.labelOffsetY !== undefined ? lot.labelOffsetY : -50) * 0.5;
+            const mPerLat = 111132.0;
+            const mPerLon = 111319.5 * Math.cos(centerLat * Math.PI / 180.0);
+            targetLat = centerLat - (loy / mPerLat) * 30;
+            targetLon = centerLon + (lox / mPerLon) * 30;
+
+            // 左画面Leaflet上にも引き出し破線を描画！
+            L.polyline([[centerLat, centerLon], [targetLat, targetLon]], {
+              color: isSite ? "#dc2626" : "#2563eb",
+              dashArray: "4,4",
+              weight: 2,
+              interactive: false
+            }).addTo(this.drawnLayersGroup);
+
+            // 重心ポインタ点
+            L.circleMarker([centerLat, centerLon], {
+              radius: 4,
+              fillColor: isSite ? "#dc2626" : "#2563eb",
+              color: "#ffffff",
+              weight: 1.5,
+              fillOpacity: 1.0,
+              interactive: false
+            }).addTo(this.drawnLayersGroup);
+          }
+
           const labelIcon = L.divIcon({
-            html: `<div style="background:${isSite ? '#dc2626' : '#475569'}; color:#fff; font-size:10px; font-weight:bold; padding:1px 5px; border-radius:3px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,0.3); pointer-events:none;">${labelText}</div>`,
-            iconAnchor: [15, 8],
+            html: `<div style="background:${isSite ? '#dc2626' : '#1e293b'}; color:#fff; border:1.5px solid white; font-size:11px; font-weight:bold; padding:2px 7px; border-radius:4px; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.35); pointer-events:none;">${labelText}</div>`,
+            iconAnchor: [20, 10],
             className: "custom-lot-label"
           });
-          L.marker([centerLat, centerLon], { icon: labelIcon, interactive: false }).addTo(this.drawnLayersGroup);
+          L.marker([targetLat, targetLon], { icon: labelIcon, interactive: false }).addTo(this.drawnLayersGroup);
         }
       });
     }

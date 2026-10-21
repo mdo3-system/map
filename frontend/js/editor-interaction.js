@@ -206,6 +206,26 @@ export class EditorInteractionController {
             const destTitle = this.state.appMode === "permit" ? "申請地記号" : `「${this.state.dest.name}」`;
             if (this.callbacks.onShowToast) this.callbacks.onShowToast(`${destTitle}の位置を更新しました`);
 
+          // 1.5. 敷地ラベル（カギ型引き出し線付きプレート）
+          } else if (elType === "lot-label" || (elId && elId.startsWith("lot_label_"))) {
+            const parentId = target.getAttribute("data-parent-id") || elId.replace("lot_label_", "");
+            const lot = this.state.findLot(parentId);
+            if (lot) {
+              const { curW, curH, curWMm, curHMm, effRadius } = this.getPlotMetrics();
+              let cx = 0, cy = 0;
+              lot.points.forEach(p => {
+                const [x, y] = GeoUtil.geoToSvg(p.lon, p.lat, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);
+                cx += x;
+                cy += y;
+              });
+              cx /= lot.points.length;
+              cy /= lot.points.length;
+              lot.labelOffsetX = finalX - cx;
+              lot.labelOffsetY = finalY - cy;
+              lot.hasLeaderLine = true;
+              if (this.callbacks.onShowToast) this.callbacks.onShowToast(`敷地「${lot.label || '申請地'}」のラベル位置を調整しました`);
+            }
+
           // 2. 目的地 / 申請地 テキストプレート
           } else if (elId === "dest_label" || elType === "dest-label") {
             const [destSvgX, destSvgY] = GeoUtil.geoToSvg(this.state.dest.lon, this.state.dest.lat, curW, curH, this.state.frameCenter, effRadius, curWMm, curHMm);

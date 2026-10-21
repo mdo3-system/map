@@ -632,7 +632,7 @@ document.addEventListener("DOMContentLoaded", () => {
       titleText = "区画（敷地割）設定";
       badgeText = "区画";
       currentText = sel.data.label || "";
-      fontSize = 13;
+      fontSize = sel.data.fontSize || 16;
       rotation = 0;
       if (modalLotGroup) {
         modalLotGroup.style.display = "block";
@@ -858,7 +858,12 @@ document.addEventListener("DOMContentLoaded", () => {
       state.saveToHistory();
       sel.data.hasLeaderLine = modalLeaderLineCheck.checked;
       inspectorLeaderLine.checked = modalLeaderLineCheck.checked;
+      if (sel.type === "lot" && sel.data.hasLeaderLine) {
+        if (sel.data.labelOffsetX === undefined) sel.data.labelOffsetX = 70;
+        if (sel.data.labelOffsetY === undefined) sel.data.labelOffsetY = -50;
+      }
       renderSvg();
+      if (mapTrace && mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
     }
   });
 

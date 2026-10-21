@@ -1,3 +1,4 @@
+import { LotModel } from "./models/lot-model.js";
 // ==========================================
 // state.js: 状態管理・データモデル・保存復元 (SRP)
 // ==========================================
@@ -501,37 +502,62 @@ export class AppState {
     return JSON.stringify(data, null, 2);
   }
 
-  // JSON読み込み
+  // JSON読み込み (完全後方互換対応)
   importJson(jsonString) {
-    const data = JSON.parse(jsonString);
+    const data = (typeof jsonString === "string") ? JSON.parse(jsonString) : jsonString;
     this.saveToHistory();
 
+    // 1. 後方互換性: appMode が無ければ "ad"（案内図モード）
+    this.appMode = data.appMode || "ad";
+
+    // 2. シーンデータの復元
     if (data.adScene) this.adScene = data.adScene;
     if (data.permitScene) this.permitScene = data.permitScene;
 
-    if (data.appMode) this.appMode = data.appMode;
-    if (data.permitInfo) this.permitInfo = { ...this.permitInfo, ...data.permitInfo };
-    if (data.dest) this.dest = { ...this.dest, ...data.dest };
-    if (data.frameCenter) this.frameCenter = { ...this.frameCenter, ...data.frameCenter };
-    if (data.widthMm) this.widthMm = data.widthMm;
-    if (data.heightMm) this.heightMm = data.heightMm;
-    if (data.viewRadiusM) this.viewRadiusM = data.viewRadiusM;
-    if (data.effectiveRadiusM) this.effectiveRadiusM = data.effectiveRadiusM;
-    if (data.transparentBg !== undefined) this.transparentBg = data.transparentBg;
-    if (data.showScale !== undefined) this.showScale = data.showScale;
-    if (data.showCompass !== undefined) this.showCompass = data.showCompass;
-    if (data.compass) this.compass = { ...this.compass, ...data.compass };
-    if (data.railMode) this.railMode = data.railMode;
+    // 3. 各種申請表題欄データの復元
+    this.permitInfo = { ...this.permitInfo, ...(data.permitInfo || {}) };
 
+    // 4. 目的地ピン・プレートの復元
+    this.dest = {
+      lat: 35.90637,
+      lon: 139.62550,
+      name: this.appMode === "permit" ? "申請地" : "現地",
+      labelOffsetX: 16,
+      labelOffsetY: -24,
+      fontSize: 14,
+      rotation: 0,
+      hasLeaderLine: false,
+      bgColor: "#d32f2f",
+      ...(data.dest || {})
+    };
+
+    // 5. 枠中心の復元
+    this.frameCenter = data.frameCenter ? { ...data.frameCenter } : { lat: this.dest.lat, lon: this.dest.lon };
+
+    // 6. 寸法・縮尺・表示設定の復元
+    this.widthMm = data.widthMm || (this.appMode === "permit" ? 297 : 80);
+    this.heightMm = data.heightMm || (this.appMode === "permit" ? 210 : 50);
+    this.viewRadiusM = data.viewRadiusM || 450;
+    this.effectiveRadiusM = data.effectiveRadiusM || this.viewRadiusM;
+    this.transparentBg = data.transparentBg !== undefined ? data.transparentBg : false;
+    this.showScale = data.showScale !== undefined ? data.showScale : true;
+    this.showCompass = data.showCompass !== undefined ? data.showCompass : true;
+    this.compass = { ...this.compass, ...(data.compass || {}) };
+    this.railMode = data.railMode || "jr";
+
+    // 7. 各種図形・レイヤーデータの復元（LotModelインスタンス化を保証）
     this.roads = data.roads || [];
     this.rails = data.rails || [];
     this.routes = data.routes || [];
     this.landmarks = data.landmarks || [];
     this.texts = data.texts || [];
-    this.lots = data.lots || [];
+    this.lots = (data.lots || []).map(l => (l instanceof LotModel ? l : new LotModel(l)));
 
     this.selectedId = null;
     this.selectedType = null;
+
+    // 8. フェーズ3 リアクティブ同期通知を発火！
+    this.notify("import");
   }
 
   // ローカルストレージ自動保存

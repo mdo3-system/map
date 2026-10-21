@@ -2,6 +2,7 @@
  * スマート案内図エディタ バージョン一元管理ファイル
  * 
  * 【バージョン更新履歴】
+ * - v0.1.26: プロジェクト読み込み(loadProject/importJson)の完全修復・後方互換性担保(旧バージョンv1〜v5ファイル読み込み時の自動フォールバック、LotModelインスタンス化、読み込み完了後のmodeController.applyToolbarVisibility / syncUI による表題欄・ツールバー・タブ・プレビュー地図の即時同期、リアクティブ通知this.notify("import")連動)
  * - v0.1.25: 単一責任の原則(SRP)フェーズ3完了(Observerリアクティブ自動同期基盤の完成、state.subscribe/notifyによる左右パネル・インスペクターの完全自動同期化、手動再描画漏れの物理的撲滅)
  * - v0.1.24: 単一責任の原則(SRP)フェーズ2完了(常駐インスペクターInspectorControllerの完全独立分離、選択要素・敷地・文字・施設・モード別UIバインディングの一元化)
  * - v0.1.23: 単一責任の原則(SRP)に基づくアーキテクチャリファクタリング実施(LotModel・LotSvgRenderer・PropertyModalControllerへの完全責任分離、敷地データ・描画・モーダルUIバインディングの独立モジュール化)
@@ -28,7 +29,7 @@
  * - v0.1.2: カギ型引き出し線両端ドラッグ、色ピッカー、駅名引き出し線、施設テキスト分離
  * - v0.1.1: 方位5種デザイン、施設記号スライダー、プロパティモーダル、GitHub連携
  */
-const APP_VERSION = "v0.1.25";
+const APP_VERSION = "v0.1.26";
 
 if (typeof window !== "undefined") {
   window.APP_VERSION = APP_VERSION;

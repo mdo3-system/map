@@ -1590,16 +1590,36 @@ state.saveToHistory();
     reader.onload = (e) => {
       try {
         state.importJson(e.target.result);
-        if (inputDestName) inputDestName.value = state.dest.name;
-        if (inputWidthMm) inputWidthMm.value = state.widthMm;
-        if (inputHeightMm) inputHeightMm.value = state.heightMm;
-        mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
-        mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
-        mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], 16);
-        mapTrace.updateDestPinIcon();
+
+        // 1. モードとツールバー・表題欄の完全同期
+        if (modeController) {
+          modeController.applyToolbarVisibility(state.appMode);
+          modeController.syncUI();
+        }
+
+        // 2. Leaflet地図の中心・マーカー同期
+        if (mapTrace && mapTrace.map) {
+          if (state.frameCenter && state.frameCenter.lat && state.frameCenter.lon) {
+            mapTrace.map.setView([state.frameCenter.lat, state.frameCenter.lon], state.appMode === "permit" ? 17 : 16);
+            if (mapTrace.frameCenterMarker) {
+              mapTrace.frameCenterMarker.setLatLng([state.frameCenter.lat, state.frameCenter.lon]);
+            }
+          }
+          if (state.dest && state.dest.lat && state.dest.lon && mapTrace.destMarker) {
+            mapTrace.destMarker.setLatLng([state.dest.lat, state.dest.lon]);
+          }
+          if (mapTrace.updateFramingRectangle) mapTrace.updateFramingRectangle();
+          if (mapTrace.updateDestPinIcon) mapTrace.updateDestPinIcon();
+          if (mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+        }
+
+        // 3. 全画面同期
         syncAll();
-        showToast(`「${state.dest.name}」のデータを読み込みました`);
+
+        const loadedTitle = (state.dest && state.dest.name) ? state.dest.name : (state.appMode === "permit" ? "申請地" : "作図データ");
+        showToast(`📂「${loadedTitle}」のデータを正常に読み込みました`);
       } catch (err) {
+        console.error("loadProject error:", err);
         alert("ファイルの読み込みに失敗しました: " + err.message);
       }
     };

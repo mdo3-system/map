@@ -14,6 +14,10 @@ import { ModeController } from "./controllers/mode-controller.js";
 document.addEventListener("DOMContentLoaded", () => {
   // 1. 状態管理の初期化
   const state = new AppState();
+  const versionBadge = document.getElementById("versionBadge");
+  if (versionBadge && window.APP_VERSION) {
+    versionBadge.textContent = window.APP_VERSION;
+  }
 
   // 2. DOM要素の取得
   const inputAddress = document.getElementById("inputAddress");

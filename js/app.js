@@ -925,6 +925,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function setMode(newMode) {
+    if (state.mode !== newMode && (state.drawingPoints || []).length > 0) {
+      // 別のツールへ切り替える際は、作図中の未確定ポリラインを破棄
+      state.drawingPoints = [];
+      if (state.activePolyline) {
+        mapTrace.map.removeLayer(state.activePolyline);
+        state.activePolyline = null;
+      }
+      updateDrawingActionBar();
+    }
+
     state.mode = newMode;
     document.querySelectorAll(".tool-icon-btn[data-mode]").forEach(b => {
       b.classList.toggle("active", b.dataset.mode === newMode);
@@ -932,7 +942,6 @@ document.addEventListener("DOMContentLoaded", () => {
     modeHint.textContent = hints[newMode] || "";
     document.body.classList.toggle("delete-mode", newMode === "delete");
 
-    finishCurrentDrawing();
     updateInspectorPanel();
   }
 

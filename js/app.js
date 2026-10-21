@@ -1,3 +1,4 @@
+import { InspectorController } from "./controllers/inspector-controller.js";
 import { PropertyModalController } from "./controllers/property-modal-controller.js";
 // ==========================================
 // app.js: メインエントリーポイント & UI統合 (SRP)
@@ -16,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. 状態管理の初期化
   const state = new AppState();
   let propertyModalController = null;
+  let inspectorController = null;
   const versionBadge = document.getElementById("versionBadge");
   if (versionBadge && window.APP_VERSION) {
     versionBadge.textContent = window.APP_VERSION;
@@ -232,6 +234,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. レンダリング関数
     // SRP: プロパティ設定モーダルコントローラーの初期化
+  inspectorController = new InspectorController(state, {
+    onUpdate: () => {
+      renderSvg();
+      if (mapTrace && mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+    },
+    onDelete: (id, type) => {
+      callbacks.onDeleteElement(id, type);
+    },
+    showToast: showToast
+  });
+
   propertyModalController = new PropertyModalController(state, {
     onUpdate: () => {
       renderSvg();
@@ -333,153 +346,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 5. プロパティ・インスペクターパネルの更新
   function updateInspectorPanel() {
-    const sel = state.getSelectedElementData();
-
-    // 一旦すべて非表示
-    inspectorSelected.style.display = "none";
-    if (inspectorLot) inspectorLot.style.display = "none";
-    inspectorCompass.style.display = "none";
-    inspectorRail.style.display = "none";
-    inspectorRoad.style.display = "none";
-    inspectorPoi.style.display = "none";
-    inspectorText.style.display = "none";
-
-    if (sel) {
-      if (sel.type === "compass") {
-        inspectorCompass.style.display = "flex";
-        const cScale = state.compass.scale || 1.0;
-        compassScaleSlider.value = cScale;
-        compassScaleVal.textContent = `${cScale.toFixed(1)}x`;
-        selectCompassDesign.value = state.compass.design || "circle_modern";
-      } else if (sel.type === "rail") {
-        inspectorRail.style.display = "flex";
-        selectRailMode.value = sel.data.mode || state.railMode;
-      } else if (sel.type === "road") {
-        inspectorRoad.style.display = "flex";
-      } else {
-        inspectorSelected.style.display = "flex";
-        
-        // 施設記号サイズスライダーの表示制御
-        if (sel.type === "landmark") {
-          inspectorIconScaleField.style.display = "flex";
-          inspectorIconScaleDivider.style.display = "block";
-          const iScale = sel.data.iconScale !== undefined ? sel.data.iconScale : 1.0;
-          inspectorIconScaleSlider.value = iScale;
-          inspectorIconScaleVal.textContent = `${iScale.toFixed(1)}x`;
-        } else {
-          inspectorIconScaleField.style.display = "none";
-          inspectorIconScaleDivider.style.display = "none";
-        }
-
-        // プレート塗りつぶし色の表示制御 (目的地または駅)
-        const isStn = (sel.type === "landmark" && (sel.data.category === "station" || sel.data.icon_type === "station"));
-        if (sel.type === "dest" || isStn) {
-          inspectorPlateBgField.style.display = "flex";
-          inspectorPlateBgDivider.style.display = "block";
-          inspectorPlateBgColor.value = sel.type === "dest" ? (sel.data.bgColor || "#d32f2f") : (sel.data.bgColor || "#1e3a8a");
-        } else {
-          inspectorPlateBgField.style.display = "none";
-          inspectorPlateBgDivider.style.display = "none";
-        }
-
-        if (sel.type === "dest" || sel.type === "dest-icon") {
-          const isIcon = (sel.type === "dest-icon" || state.selectedId === "dest_pin" || state.selectedType === "dest-icon");
-          selectedBadge.textContent = isIcon
-            ? (state.appMode === "permit" ? "申請地記号(◎)" : "目的地ピン")
-            : (state.appMode === "permit" ? "申請地プレート" : "目的地プレート");
-
-          if (isIcon) {
-            inspectorNameField.style.display = "none";
-            inspectorFontSizeField.style.display = "none";
-            inspectorRotationField.style.display = "none";
-            inspectorLeaderLineLabel.style.display = "none";
-            btnInspectorDelete.style.display = "inline-flex";
-            btnInspectorDelete.textContent = "🗑️ 記号削除";
-          } else {
-            inspectorName.value = sel.data.name || (state.appMode === "permit" ? "申請地" : "現地");
-            inspectorNameField.style.display = "flex";
-            inspectorLeaderLineLabel.style.display = "flex";
-            btnInspectorDelete.style.display = "inline-flex";
-            btnInspectorDelete.textContent = "🗑️ プレート削除";
-            inspectorFontSizeField.style.display = "flex";
-            inspectorFontSizeSlider.value = sel.data.fontSize || 24;
-            inspectorFontSizeVal.textContent = `${sel.data.fontSize || 24}px`;
-            inspectorRotationField.style.display = "flex";
-            inspectorRotationSlider.value = sel.data.rotation || 0;
-            inspectorRotationVal.textContent = `${sel.data.rotation || 0}°`;
-            inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
-          }
-        } else if (sel.type === "landmark") {
-          selectedBadge.textContent = sel.data.category === "station" ? "駅" : sel.data.icon_type === "signal" ? "信号機" : "施設";
-          inspectorName.value = sel.data.name || "";
-          inspectorFontSizeSlider.value = sel.data.fontSize || (sel.data.category === "station" ? 13 : 11.5);
-          inspectorFontSizeVal.textContent = `${sel.data.fontSize || (sel.data.category === "station" ? 13 : 11.5)}px`;
-          inspectorRotationSlider.value = sel.data.rotation || 0;
-          inspectorRotationVal.textContent = `${sel.data.rotation || 0}°`;
-          inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
-          inspectorLeaderLineLabel.style.display = "flex";
-          btnInspectorDelete.style.display = "inline-flex";
-        } else if (sel.type === "text") {
-          selectedBadge.textContent = "文字";
-          inspectorName.value = sel.data.text || "";
-          inspectorFontSizeSlider.value = sel.data.fontSize || 12;
-          inspectorFontSizeVal.textContent = `${sel.data.fontSize || 12}px`;
-          inspectorRotationSlider.value = sel.data.rotation || 0;
-          inspectorRotationVal.textContent = `${sel.data.rotation || 0}°`;
-          inspectorLeaderLine.checked = !!sel.data.hasLeaderLine;
-          inspectorLeaderLineLabel.style.display = "flex";
-          btnInspectorDelete.style.display = "inline-flex";
-
-          // 文字色 & 白フチの表示と同期
-          if (inspectorTextColorField) {
-            inspectorTextColorField.style.display = "flex";
-            if (inspectorTextColorDivider) inspectorTextColorDivider.style.display = "block";
-            inspectorTextColor.value = sel.data.color || "#0f172a";
-          }
-          if (inspectorHaloLabel) {
-            inspectorHaloLabel.style.display = "flex";
-            if (inspectorHaloDivider) inspectorHaloDivider.style.display = "block";
-            inspectorHalo.checked = (sel.data.hasHalo !== false);
-          }
-        }
-      }
-
-      // 敷地・多角形が選択された場合
-      if (sel && sel.type === "lot" && inspectorLot) {
-        inspectorSelected.style.display = "none";
-        inspectorLot.style.display = "flex";
-        const lot = sel.data;
-        const isSite = !!lot.isSite;
-
-        if (lotHasFill) lotHasFill.checked = (lot.hasFill !== false);
-        if (lotFillColor) lotFillColor.value = lot.fillColor || (isSite ? "#ef4444" : "#3b82f6");
-        const op = lot.fillOpacity !== undefined ? lot.fillOpacity : (isSite ? 0.35 : 0.25);
-        if (lotFillOpacity) lotFillOpacity.value = op;
-        if (lotFillOpacityVal) lotFillOpacityVal.textContent = `${Math.round(op * 100)}%`;
-
-        if (lotHasStroke) lotHasStroke.checked = (lot.hasStroke !== false);
-        if (lotStrokeColor) lotStrokeColor.value = lot.strokeColor || (isSite ? "#dc2626" : "#2563eb");
-        const sw = lot.strokeWidth !== undefined ? lot.strokeWidth : (isSite ? 4.0 : 2.5);
-        if (lotStrokeWidth) lotStrokeWidth.value = sw;
-        if (lotStrokeWidthVal) lotStrokeWidthVal.textContent = String(sw);
-        if (lotStrokeDash) lotStrokeDash.value = (lot.strokeDash === "dashed") ? "dashed" : "solid";
-
-        if (btnLotToggleSite) {
-          btnLotToggleSite.textContent = isSite ? "◎ 申請地指定中 (解除)" : "◎ 申請地に指定";
-          btnLotToggleSite.style.background = isSite ? "#dc2626" : "#fef2f2";
-          btnLotToggleSite.style.color = isSite ? "#ffffff" : "#dc2626";
-        }
-        if (lotLabel) lotLabel.value = lot.label || "";
-        const fSize = lot.fontSize || 16;
-        if (lotFontSize) lotFontSize.value = fSize;
-        if (lotFontSizeVal) lotFontSizeVal.textContent = `${fSize}px`;
-      }
-    } else {
-      // 選択されていない時は現在のツールに応じた設定を表示
-      inspectorRail.style.display = state.mode === "railway" ? "flex" : "none";
-      inspectorRoad.style.display = ["major_road", "medium_road", "minor_road"].includes(state.mode) ? "flex" : "none";
-      inspectorPoi.style.display = state.mode === "poi" ? "flex" : "none";
-      inspectorText.style.display = state.mode === "text" ? "flex" : "none";
+    if (inspectorController) {
+      inspectorController.update();
     }
   }
 

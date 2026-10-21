@@ -1641,11 +1641,16 @@ state.saveToHistory();
   });
 
   // 13. エクスポート (SVG / PNG)
-  btnExportSvg.addEventListener("click", () => {
+  btnExportSvg.addEventListener("click", async () => {
     const svgEl = svgContainer.querySelector("svg");
     if (!svgEl) return;
-    ExportService.exportSvg(svgEl, state);
-    showToast("SVGファイルを出力しました");
+    showToast("SVG出力を準備中...");
+    try {
+      await ExportService.exportSvg(svgEl, state);
+      showToast("SVGファイルを出力しました");
+    } catch (err) {
+      showToast("SVG出力に失敗しました", true);
+    }
   });
 
   const btnExportPdf = document.getElementById("btnExportPdf");

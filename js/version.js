@@ -2,6 +2,7 @@
  * スマート案内図エディタ バージョン一元管理ファイル
  * 
  * 【バージョン更新履歴】
+ * - v0.1.29: 【PDF/PNG地図タイル出力欠落の根本解決】ブラウザSVGセキュリティ仕様による外部画像遮断の完全解消(ExportService.inlineSvgImages新設、背景地図タイルのBase64インライン自動変換によるPDF・PNG・SVGへの地図完全合成出力)
  * - v0.1.28: 【白地図表示の完全修復】国土地理院白地図(blank/pale)レンダリング最適化(市街地真っ白バグ根本解消、実務白図タイルの高精細レンダリング、左画面Leafletへの白図/淡色地図レイヤー新設および左右双方向同期連動)
  * - v0.1.27: 【緊急修正】AppState._listeners初期化漏れによるsubscribe時TypeError(push of undefined)クラッシュの根本解消、地図描画停止の復旧、index.htmlキャッシュバスティング(?v=v0.1.27)適正化
  * - v0.1.26: プロジェクト読み込み(loadProject/importJson)の完全修復・後方互換性担保(旧バージョンv1〜v5ファイル読み込み時の自動フォールバック、LotModelインスタンス化、読み込み完了後のmodeController.applyToolbarVisibility / syncUI による表題欄・ツールバー・タブ・プレビュー地図の即時同期、リアクティブ通知this.notify("import")連動)
@@ -31,7 +32,7 @@
  * - v0.1.2: カギ型引き出し線両端ドラッグ、色ピッカー、駅名引き出し線、施設テキスト分離
  * - v0.1.1: 方位5種デザイン、施設記号スライダー、プロパティモーダル、GitHub連携
  */
-const APP_VERSION = "v0.1.28";
+const APP_VERSION = "v0.1.29";
 
 if (typeof window !== "undefined") {
   window.APP_VERSION = APP_VERSION;

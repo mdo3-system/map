@@ -5,12 +5,46 @@
 
 export class ExportService {
   /**
+   * SVG内の外部画像（<image href="https://...">）をBase64データURIに変換
+   * （ブラウザのセキュリティ仕様により、SVGを<img>に読み込んだ際の外部リソース遮断を完全解消）
+   */
+  static async inlineSvgImages(svgEl) {
+    const clone = svgEl.cloneNode(true);
+    const imageElements = Array.from(clone.querySelectorAll("image"));
+    if (imageElements.length === 0) return clone;
+
+    await Promise.all(imageElements.map(async (img) => {
+      const href = img.getAttribute("href") || img.getAttribute("xlink:href");
+      if (!href || href.startsWith("data:")) return;
+
+      try {
+        const resp = await fetch(href, { mode: "cors", cache: "force-cache" });
+        if (!resp.ok) return;
+        const blob = await resp.blob();
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        img.setAttribute("href", base64);
+        img.removeAttribute("xlink:href");
+      } catch (err) {
+        console.warn("Failed to inline image for export:", href, err);
+      }
+    }));
+
+    return clone;
+  }
+
+  /**
    * SVGファイルをダウンロード
    */
-  static exportSvg(svgEl, state) {
+  static async exportSvg(svgEl, state) {
     if (!svgEl) return;
+    const inlined = await this.inlineSvgImages(svgEl);
     const serializer = new XMLSerializer();
-    const svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(svgEl);
+    const svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(inlined);
     const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -26,51 +60,47 @@ export class ExportService {
   /**
    * PNG高解像度画像をダウンロード (デフォルト350dpi相当: scale=3.5)
    */
-  static exportPng(svgEl, state, scale = 3.5) {
-    return new Promise((resolve, reject) => {
-      if (!svgEl) return reject(new Error("SVG要素が見つかりません"));
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svgEl);
-      const img = new Image();
-      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
+  static async exportPng(svgEl, state, scale = 3.5) {
+    if (!svgEl) throw new Error("SVG要素が見つかりません");
+    const inlined = await this.inlineSvgImages(svgEl);
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(inlined);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
 
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          canvas.width = svgEl.viewBox.baseVal.width * scale;
-          canvas.height = svgEl.viewBox.baseVal.height * scale;
-          const ctx = canvas.getContext("2d");
-
-          if (!state.transparentBg) {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(url);
-
-          const pngUrl = canvas.toDataURL("image/png");
-          const a = document.createElement("a");
-          a.href = pngUrl;
-          const prefix = state.appMode === "permit" ? "見取図" : "案内図";
-          a.download = `${prefix}_${state.dest.name || "物件"}_高解像度.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          resolve();
-        } catch (e) {
-          reject(e);
-        }
-      };
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
       img.onerror = () => {
         URL.revokeObjectURL(url);
         reject(new Error("SVG画像の読み込みに失敗しました"));
       };
       img.src = url;
     });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = svgEl.viewBox.baseVal.width * scale;
+    canvas.height = svgEl.viewBox.baseVal.height * scale;
+    const ctx = canvas.getContext("2d");
+
+    if (!state.transparentBg) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+
+    const pngUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = pngUrl;
+    const prefix = state.appMode === "permit" ? "見取図" : "案内図";
+    a.download = `${prefix}_${state.dest.name || "物件"}_高解像度.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   /**
@@ -92,15 +122,19 @@ export class ExportService {
         compress: true
       });
 
+      const inlined = await this.inlineSvgImages(svgEl);
       const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svgEl);
+      const svgString = serializer.serializeToString(inlined);
       const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
 
       const img = new Image();
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = () => reject(new Error("SVG画像の読み込みに失敗しました"));
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("SVG画像の読み込みに失敗しました"));
+        };
         img.src = url;
       });
 

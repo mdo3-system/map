@@ -1,3 +1,4 @@
+import { LotSvgRenderer } from "./renderers/lot-svg-renderer.js";
 // ==========================================
 // svg-builder.js: 案内図SVGレンダラー (SRP)
 // ==========================================
@@ -130,83 +131,7 @@ export class SvgBuilder {
    * 街区・区画割（敷地ポリゴン）レイヤーのレンダリング
    */
   static renderLots(state, wPx, hPx, widthMm, heightMm, effRadius) {
-    if (!state.lots || state.lots.length === 0) return "";
-    let svg = `<g id="permit_lots_layer" class="permit-lots-layer">`;
-    state.lots.forEach(lot => {
-      if (!lot.points || lot.points.length < 3) return;
-      const pts = lot.points.map(p => {
-        const [x, y] = GeoUtil.geoToSvg(p.lon, p.lat, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(" ");
-
-      const isSelected = (String(state.selectedId) === String(lot.id) && state.selectedType === "lot");
-      const isSite = !!lot.isSite;
-
-      // 塗りつぶしの有無・色・不透明度
-      const hasFill = (lot.hasFill !== false);
-      const fillOpacity = lot.fillOpacity !== undefined ? lot.fillOpacity : (isSite ? 0.35 : 0.25);
-      const baseFillCol = lot.fillColor || (isSite ? "#ef4444" : "#3b82f6");
-      const fillAttr = hasFill ? `fill="${baseFillCol}" fill-opacity="${fillOpacity}"` : `fill="none"`;
-
-      // 線の有無・色・太さ・線種
-      const hasStroke = (lot.hasStroke !== false);
-      const strokeCol = lot.strokeColor || (isSite ? "#dc2626" : "#2563eb");
-      const strokeWidth = lot.strokeWidth !== undefined ? lot.strokeWidth : (isSite ? 4.0 : 2.5);
-      const strokeDash = lot.strokeDash === "dashed" ? 'stroke-dasharray="8,5"' : '';
-      const strokeAttr = hasStroke ? `stroke="${strokeCol}" stroke-width="${strokeWidth}" ${strokeDash}` : `stroke="none"`;
-
-      // 重心計算 (ラベル配置用)
-      let cx = 0, cy = 0;
-      lot.points.forEach(p => {
-        const [x, y] = GeoUtil.geoToSvg(p.lon, p.lat, wPx, hPx, state.frameCenter, effRadius, widthMm, heightMm);
-        cx += x;
-        cy += y;
-      });
-      cx /= lot.points.length;
-      cy /= lot.points.length;
-
-      svg += `
-        <g id="${lot.id}" data-type="lot" data-id="${lot.id}" class="draggable lot-polygon-el ${isSelected ? 'is-selected' : ''}" title="🖱️ 敷地・図形: クリックで選択 / プロパティ編集">
-          <polygon points="${pts}" ${fillAttr} ${strokeAttr} stroke-linejoin="round" stroke-linecap="round"/>
-          ${isSelected ? `<polygon points="${pts}" fill="none" stroke="#2563eb" stroke-width="${Math.max(strokeWidth + 3, 5)}" stroke-dasharray="6,4" opacity="0.9"/>` : ''}
-          ${(isSite && (!state.dest || state.dest.hidePin !== true)) ? `
-            <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="#ffffff" stroke="#dc2626" stroke-width="2.2" pointer-events="none"/>
-            <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="#dc2626" pointer-events="none"/>
-          ` : ''}
-          // 敷地ラベルおよびカギ型引き出し線
-          const fSize = lot.fontSize || 16;
-          const hasLeader = !!lot.hasLeaderLine;
-          const isLabelSelected = (String(state.selectedId) === String(lot.id) && (state.selectedType === "lot" || state.selectedType === "lot-label"));
-          if (hasLeader) {
-            const lox = lot.labelOffsetX !== undefined ? lot.labelOffsetX : (isSite ? 70 : 60);
-            const loy = lot.labelOffsetY !== undefined ? lot.labelOffsetY : -50;
-            const lx = cx + lox;
-            const ly = cy + loy;
-            svg += SvgBuilder.buildLeaderLine(cx, cy, lx, ly);
-            svg += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" pointer-events="none"/>`;
-            const lblLines = lot.label.split("\n");
-            const maxLineLen = Math.max(...lblLines.map(l => l.length), 1);
-            const pW = Math.max(maxLineLen * (fSize + 4) + 24, 70);
-            const pH = (fSize * 1.35) * lblLines.length + 14;
-            svg += `
-              <g id="lot_label_${lot.id}" data-type="lot-label" data-parent-id="${lot.id}" class="draggable lot-label-el ${isLabelSelected ? "is-selected" : ""}" transform="translate(${lx.toFixed(1)}, ${ly.toFixed(1)})" title="🖱️ 敷地ラベル: ドラッグで位置移動 / クリックで選択">
-                <rect x="${(-pW/2).toFixed(1)}" y="${(-pH/2).toFixed(1)}" width="${pW.toFixed(1)}" height="${pH.toFixed(1)}" rx="6" ry="6" fill="${isSite ? "#dc2626" : "#ffffff"}" stroke="${isSite ? "#ffffff" : "#1e293b"}" stroke-width="${isSite ? 3.0 : 1.8}" filter="drop-shadow(0 3px 8px rgba(0,0,0,0.3))"/>
-                <text x="0" y="${(fSize * 0.35).toFixed(1)}" text-anchor="middle" font-size="${fSize}px" font-weight="bold" fill="${isSite ? "#ffffff" : "#0f172a"}" class="map-text" pointer-events="none">${lot.label}</text>
-              </g>
-            `;
-          } else {
-            svg += `
-              <g id="lot_label_${lot.id}" data-type="lot-label" data-parent-id="${lot.id}" class="draggable lot-label-el ${isLabelSelected ? "is-selected" : ""}" transform="translate(${cx.toFixed(1)}, ${(cy + (isSite && (!state.dest || state.dest.hidePin !== true) ? fSize * 0.9 : fSize * 0.35)).toFixed(1)})" title="🖱️ 敷地ラベル: クリックで選択 / ドラッグで引き出し線">
-                <text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? "#dc2626" : "#1e293b"}" class="map-text halo-stroke">${lot.label}</text>
-                <text x="0" y="0" text-anchor="middle" font-size="${fSize}px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? "#dc2626" : "#1e293b"}" class="map-text">${lot.label}</text>
-              </g>
-            `;
-          }
-        </g>
-      `;
-    });
-    svg += `</g>`;
-    return svg;
+    return LotSvgRenderer.renderAll(state, wPx, hPx, effRadius, widthMm, heightMm, GeoUtil.geoToSvg, SvgBuilder.buildLeaderLine);
   }
 
   /**

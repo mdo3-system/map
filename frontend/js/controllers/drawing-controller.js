@@ -1,3 +1,4 @@
+import { LotModel } from "../models/lot-model.js";
 // ==========================================
 // drawing-controller.js: 作図フロー制御コントローラー (SRP)
 // 責務: 敷地・道路・線路・ルートの作図中頂点管理、完了判定、完了/取消の状態遷移のみを担当
@@ -45,19 +46,24 @@ export class DrawingController {
       const lotCount = (this.state.lots || []).length + 1;
       const isFirst = ((this.state.lots || []).length === 0);
 
-      this.state.lots.push({
+      const newLot = new LotModel({
         id: lotId,
         points: pts,
         isSite: isFirst,
         label: isFirst ? "申請地" : `${lotCount}号地`,
+        fontSize: 16,
         hasFill: true,
         fillColor: isFirst ? "#ef4444" : "#3b82f6",
         fillOpacity: isFirst ? 0.35 : 0.25,
         hasStroke: true,
         strokeColor: isFirst ? "#dc2626" : "#2563eb",
         strokeWidth: isFirst ? 4.0 : 2.5,
-        strokeDash: "solid"
+        strokeDash: "solid",
+        hasLeaderLine: false,
+        labelOffsetX: 70,
+        labelOffsetY: -50
       });
+      this.state.lots.push(newLot);
 
       // 敷地を作図した場合は、既存の現地ピン・丸印を自動非表示にして二重表示を解消
       if (this.state.appMode === "permit" || isFirst) {

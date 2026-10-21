@@ -1,3 +1,4 @@
+import { PropertyModalController } from "./controllers/property-modal-controller.js";
 // ==========================================
 // app.js: メインエントリーポイント & UI統合 (SRP)
 // ==========================================
@@ -14,6 +15,7 @@ import { ModeController } from "./controllers/mode-controller.js";
 document.addEventListener("DOMContentLoaded", () => {
   // 1. 状態管理の初期化
   const state = new AppState();
+  let propertyModalController = null;
   const versionBadge = document.getElementById("versionBadge");
   if (versionBadge && window.APP_VERSION) {
     versionBadge.textContent = window.APP_VERSION;
@@ -229,6 +231,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 3. レンダリング関数
+    // SRP: プロパティ設定モーダルコントローラーの初期化
+  propertyModalController = new PropertyModalController(state, {
+    onUpdate: () => {
+      renderSvg();
+      if (mapTrace && mapTrace.syncDrawnLayers) mapTrace.syncDrawnLayers();
+    },
+    onDelete: (id, type) => {
+      callbacks.onDeleteElement(id, type);
+    },
+    showToast: showToast
+  });
+
   function renderSvg() {
     const svgString = SvgBuilder.build(state);
     svgContainer.innerHTML = svgString;
@@ -604,6 +618,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   function openPropertyModal(sel) {
     if (!sel) return;
+    if (propertyModalController) {
+      propertyModalController.open(sel);
+      return;
+    }
     elementPropertyModal.style.display = "flex";
 
     let titleText = "プロパティ設定";

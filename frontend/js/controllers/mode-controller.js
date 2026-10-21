@@ -29,6 +29,11 @@ export class ModeController {
     if (mode === "permit") {
       const scale = (this.state.permitInfo && this.state.permitInfo.scale) || 2500;
       this.state.effectiveRadiusM = GeoUtil.scaleToEffectiveRadius(scale, this.state.widthMm, 10);
+      // 各種申請モード切替時は左画面Leafletも自動で白図(pale)に同期
+      if (this.mapTrace && this.mapTrace.syncBaseLayer) {
+        const baseType = (this.state.permitInfo && this.state.permitInfo.baseMapType) || "pale";
+        this.mapTrace.syncBaseLayer(baseType);
+      }
       if (this.callbacks.showToast) {
         this.callbacks.showToast("📑 【各種申請モード】1/2500 国土地理院白図・見取図モードに切り替えました");
       }

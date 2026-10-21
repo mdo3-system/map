@@ -1392,6 +1392,9 @@ document.addEventListener("DOMContentLoaded", () => {
     permitBaseMap.addEventListener("change", (e) => {
       state.saveToHistory();
       state.permitInfo.baseMapType = e.target.value;
+      if (mapTrace && mapTrace.syncBaseLayer) {
+        mapTrace.syncBaseLayer(e.target.value);
+      }
       renderSvg();
       showToast(`背景地図を「${e.target.options[e.target.selectedIndex].text}」に切り替えました`);
     });

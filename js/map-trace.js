@@ -27,13 +27,25 @@ export class MapTraceController {
         attribution: "© OpenStreetMap",
         maxNativeZoom: 19,
         maxZoom: 22
+      }),
+      pale: L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", {
+        attribution: "国土地理院(白図/淡色地図)",
+        maxNativeZoom: 18,
+        maxZoom: 22
+      }),
+      std: L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+        attribution: "国土地理院(標準地図)",
+        maxNativeZoom: 18,
+        maxZoom: 22
       })
     };
     this.tileLayers.satellite.addTo(this.map);
 
-    L.control.layers({
+    this.layersControl = L.control.layers({
       "航空写真 (国土地理院)": this.tileLayers.satellite,
-      "標準地図 (OSM)": this.tileLayers.osm
+      "白図 / 淡色地図 (国土地理院)": this.tileLayers.pale,
+      "標準地図 (OSM)": this.tileLayers.osm,
+      "標準地図 (国土地理院)": this.tileLayers.std
     }, null, { position: "topright" }).addTo(this.map);
 
     // 描画済みレイヤーグループ

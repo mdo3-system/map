@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>スマート案内図作成エディタ | スプリット・トレース方式</title>
-  <link rel="stylesheet" href="css/style.css?v=v0.1.27">
+  <link rel="stylesheet" href="css/style.css?v=v0.1.28">
   <!-- Version定義 -->
-  <script src="js/version.js?v=v0.1.27"></script>
+  <script src="js/version.js?v=v0.1.28"></script>
   <!-- Leaflet: 参照マップ用 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -19,7 +19,7 @@
       <div class="brand-icon">図</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>スマート案内図エディタ</h1>
-        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.27</span>
+        <span class="version-badge" id="versionBadge" style="background:#2563eb; color:#ffffff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; letter-spacing:0.5px;">v0.1.28</span>
       </div>
       <a href="manual.html" target="_blank" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px; text-decoration: none; margin-left: 4px; border-color: #475569;" title="詳しい操作マニュアルを別タブで開く">📖 マニュアル</a>
     </div>
@@ -128,10 +128,10 @@
         <div class="inspector-divider"></div>
         <label class="inspector-field">背景図:
           <select id="permitBaseMap" class="poi-select" style="padding:2px 4px; font-size:11px;">
-            <option value="osm" selected>標準地図 (OSM・文字小・高精細[推奨])</option>
-            <option value="pale">淡色地図 (国土地理院)</option>
-            <option value="seamlessphoto">航空写真 (オルソ)</option>
-            <option value="blank">白地図 (シンプル白黒)</option>
+            <option value="pale" selected>白図 / 淡色地図 (国土地理院・付近見取図推奨)</option>
+            <option value="blank">白地図 (国土地理院 白図)</option>
+            <option value="osm">標準地図 (OSM・文字小・高精細)</option>
+            <option value="seamlessphoto">航空写真 (国土地理院)</option>
             <option value="std">標準地図 (国土地理院・等高線)</option>
           </select>
         </label>
@@ -619,6 +619,6 @@
   </div>
 
   <!-- ESモジュール形式でアプリ起動 -->
-  <script type="module" src="js/app.js?v=v0.1.27"></script>
+  <script type="module" src="js/app.js?v=v0.1.28"></script>
 </body>
 </html>

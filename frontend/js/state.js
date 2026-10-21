@@ -8,6 +8,9 @@ export class AppState {
    * 状態変更リスナーの登録 (Observerパターン: フェーズ3)
    */
   subscribe(fn) {
+    if (!this._listeners) {
+      this._listeners = [];
+    }
     if (typeof fn === "function") {
       this._listeners.push(fn);
     }
@@ -31,6 +34,7 @@ export class AppState {
   }
 
   constructor() {
+    this._listeners = [];
     this.mode = "select"; // select | dest | major_road | medium_road | minor_road | railway | route | poi | text | lot | delete
     this.selectedId = null;
     this.selectedType = null; // landmark-icon | landmark-label | text | dest-icon | dest-label | road | rail | route | lot

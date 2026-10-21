@@ -152,6 +152,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const lotStrokeWidth = document.getElementById("lotStrokeWidth");
   const lotStrokeWidthVal = document.getElementById("lotStrokeWidthVal");
   const lotStrokeDash = document.getElementById("lotStrokeDash");
+  const lotLabel = document.getElementById("lotLabel");
+  const lotFontSize = document.getElementById("lotFontSize");
+  const lotFontSizeVal = document.getElementById("lotFontSizeVal");
   const btnLotToggleSite = document.getElementById("btnLotToggleSite");
   const btnLotDelete = document.getElementById("btnLotDelete");
 
@@ -448,6 +451,10 @@ document.addEventListener("DOMContentLoaded", () => {
           btnLotToggleSite.style.background = isSite ? "#dc2626" : "#fef2f2";
           btnLotToggleSite.style.color = isSite ? "#ffffff" : "#dc2626";
         }
+        if (lotLabel) lotLabel.value = lot.label || "";
+        const fSize = lot.fontSize || 16;
+        if (lotFontSize) lotFontSize.value = fSize;
+        if (lotFontSizeVal) lotFontSizeVal.textContent = `${fSize}px`;
       }
     } else {
       // 選択されていない時は現在のツールに応じた設定を表示
@@ -1224,6 +1231,30 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  if (lotLabel) {
+    lotLabel.addEventListener("input", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        state.saveToHistory();
+        sel.data.label = e.target.value;
+        renderSvg();
+      }
+    });
+  }
+  if (lotFontSize) {
+    lotFontSize.addEventListener("input", (e) => {
+      const sel = state.getSelectedElementData();
+      if (sel && sel.type === "lot") {
+        sel.data.fontSize = parseInt(e.target.value, 10) || 16;
+        if (lotFontSizeVal) lotFontSizeVal.textContent = `${sel.data.fontSize}px`;
+        renderSvg();
+      }
+    });
+    lotFontSize.addEventListener("change", () => {
+      state.saveToHistory();
+    });
+  }
+
   if (btnLotDelete) {
     btnLotDelete.addEventListener("click", () => {
       if (state.selectedId && state.selectedType === "lot") {

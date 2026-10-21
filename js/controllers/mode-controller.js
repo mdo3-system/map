@@ -99,7 +99,7 @@ export class ModeController {
     const permitPaperSize = document.getElementById("permitPaperSize");
     const permitBoxPosition = document.getElementById("permitBoxPosition");
     const permitTileZoom = document.getElementById("permitTileZoom");
-    const checkPermitSiteMarker = document.getElementById("check_permit_site_marker");
+    const checkPermitSiteMarker = document.getElementById("checkPermitSiteMarker");
     const inputWidthMm = document.getElementById("inputWidthMm");
     const inputHeightMm = document.getElementById("inputHeightMm");
     const inputDestName = document.getElementById("inputDestName");

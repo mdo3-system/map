@@ -65,7 +65,7 @@ export class DrawingController {
         if (this.state.permitScene && this.state.permitScene.dest) {
           this.state.permitScene.dest.hidePin = true;
         }
-        const chk = document.getElementById("check_permit_site_marker");
+        const chk = document.getElementById("checkPermitSiteMarker");
         if (chk) chk.checked = false;
       }
 

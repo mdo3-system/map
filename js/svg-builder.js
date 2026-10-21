@@ -174,8 +174,8 @@ export class SvgBuilder {
             <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="#dc2626" pointer-events="none"/>
           ` : ''}
           ${lot.label ? `
-            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text halo-stroke" pointer-events="none">${lot.label}</text>
-            <text x="${cx.toFixed(1)}" y="${(cy + (isSite ? 18 : 4)).toFixed(1)}" text-anchor="middle" font-size="12.5px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text" pointer-events="none">${lot.label}</text>
+            <text x="${cx.toFixed(1)}" y="${(cy + (isSite && (!state.dest || state.dest.hidePin !== true) ? (lot.fontSize || 16) * 0.9 : (lot.fontSize || 16) * 0.35)).toFixed(1)}" text-anchor="middle" font-size="${lot.fontSize || 16}px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text halo-stroke" pointer-events="none">${lot.label}</text>
+            <text x="${cx.toFixed(1)}" y="${(cy + (isSite && (!state.dest || state.dest.hidePin !== true) ? (lot.fontSize || 16) * 0.9 : (lot.fontSize || 16) * 0.35)).toFixed(1)}" text-anchor="middle" font-size="${lot.fontSize || 16}px" font-weight="bold" fill="${(isSite && (!state.dest || state.dest.hidePin !== true)) ? '#dc2626' : '#1e293b'}" class="map-text" pointer-events="none">${lot.label}</text>
           ` : ''}
         </g>
       `;

@@ -274,6 +274,14 @@
         <div class="inspector-divider"></div>
         <button type="button" id="btnLotToggleSite" class="btn-micro" style="padding:3px 8px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; font-weight:bold;" title="この区画を申請地に指定（二重丸記号を自動配置）">◎ 申請地指定</button>
         <div class="inspector-divider"></div>
+        <label class="inspector-field" title="敷地内の中央ラベル文字">文字:
+          <input type="text" id="lotLabel" value="申請地" style="width:70px; padding:2px 4px; font-size:11px;">
+        </label>
+        <label class="inspector-field" title="敷地ラベルの文字サイズ (10〜72px)">サイズ:
+          <input type="range" id="lotFontSize" min="10" max="72" value="16" style="width:55px;">
+          <span id="lotFontSizeVal" style="font-weight:bold; width:30px;">16px</span>
+        </label>
+        <div class="inspector-divider"></div>
         <button id="btnLotDelete" class="btn-del-item" title="この敷地図形を削除 (Deleteキー)">🗑️ 削除</button>
       </div>
 

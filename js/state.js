@@ -362,7 +362,13 @@ export class AppState {
     } else if (type === "dest-label") {
       deletedName = this.appMode === "permit" ? "申請地プレート" : "目的地プレート";
       this.dest.name = "";
-    } else if (type === "dest-icon" || id === "dest_pin" || strId === "dest_pin") {
+      if (this.permitScene && this.permitScene.dest) {
+        this.permitScene.dest.name = "";
+      }
+      if (this.adScene && this.adScene.dest) {
+        this.adScene.dest.name = "";
+      }
+    } else if (type === "dest-icon" || id === "dest_pin" || strId === "dest_pin" || type === "dest") {
       deletedName = this.appMode === "permit" ? "申請地記号（◎）" : "目的地ピン";
       this.dest.hidePin = true;
       if (this.permitScene && this.permitScene.dest) {
